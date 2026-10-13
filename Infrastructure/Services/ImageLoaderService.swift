@@ -86,6 +86,13 @@ public final class ImageLoaderService: Sendable {
                     let id = url.path
                     let filename = url.lastPathComponent
                     
+                    var rating = 0
+                    var isTagged = false
+                    if let xmpData = XmpMetadataWriter.readXmpSidecar(for: url) {
+                        rating = xmpData.rating
+                        isTagged = xmpData.isTagged
+                    }
+                    
                     return ImageMetadata(
                         id: id,
                         url: url,
@@ -99,7 +106,9 @@ public final class ImageLoaderService: Sendable {
                         iso: iso,
                         aperture: aperture,
                         shutterSpeed: shutterSpeed,
-                        hasThumbnail: true
+                        hasThumbnail: true,
+                        rating: rating,
+                        isTagged: isTagged
                     )
                 }
             }.value
@@ -113,37 +122,88 @@ public final class ImageLoaderService: Sendable {
     
     /// High-performance luminance histogram calculation on a CGImage
     public func calculateLuminanceHistogram(for cgImage: CGImage) -> [Float] {
-        let width = cgImage.width
-        let height = cgImage.height
-        guard let dataProvider = cgImage.dataProvider,
-              let data = dataProvider.data,
-              let ptr = CFDataGetBytePtr(data) else {
-            return Array(repeating: 0.0, count: 256)
+        let (bins, _) = calculateRawLuminanceHistogram(for: cgImage)
+        let maxBin = Float(bins.max() ?? 1)
+        return bins.map { Float($0) / maxBin }
+    }
+    
+    /// Calculate raw bin counts and total pixel count sampled, along with average R, G, B values for White Balance
+    public func calculateRGBAnalysis(for cgImage: CGImage) -> RGBAnalysisResult {
+        let width = min(cgImage.width, 256)
+        let height = max(1, Int(Float(cgImage.height) * (Float(width) / Float(cgImage.width))))
+        
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
+        
+        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+        guard let context = CGContext(
+            data: &pixelData,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: colorSpace,
+            bitmapInfo: bitmapInfo
+        ) else {
+            return RGBAnalysisResult(histogram: Array(repeating: 0, count: 256), totalPixels: 0, avgR: 128, avgG: 128, avgB: 128)
         }
         
-        var bins = Array(repeating: 0, count: 256)
-        let bytesPerPixel = cgImage.bitsPerPixel / 8
-        let bytesPerRow = cgImage.bytesPerRow
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
         
-        // Sample every 2nd pixel in both directions for maximum speed (<0.5ms)
-        for y in stride(from: 0, to: height, by: 2) {
+        var bins = Array(repeating: 0, count: 256)
+        var totalPixels = 0
+        var sumR: Double = 0
+        var sumG: Double = 0
+        var sumB: Double = 0
+        
+        for y in 0..<height {
             let rowOffset = y * bytesPerRow
-            for x in stride(from: 0, to: width, by: 2) {
+            for x in 0..<width {
                 let pixelOffset = rowOffset + x * bytesPerPixel
+                let r = pixelData[pixelOffset]
+                let g = pixelData[pixelOffset + 1]
+                let b = pixelData[pixelOffset + 2]
                 
-                let r = ptr[pixelOffset]
-                let g = ptr[pixelOffset + 1]
-                let b = ptr[pixelOffset + 2]
+                sumR += Double(r)
+                sumG += Double(g)
+                sumB += Double(b)
                 
                 // Standard Luminosity Formula: Y = 0.299R + 0.587G + 0.114B
                 let luminance = Int(0.299 * Float(r) + 0.587 * Float(g) + 0.114 * Float(b))
                 let clamped = max(0, min(255, luminance))
                 bins[clamped] += 1
+                totalPixels += 1
             }
         }
         
-        let maxBin = Float(bins.max() ?? 1)
-        return bins.map { Float($0) / maxBin }
+        let avgR = totalPixels > 0 ? Float(sumR / Double(totalPixels)) : 128.0
+        let avgG = totalPixels > 0 ? Float(sumG / Double(totalPixels)) : 128.0
+        let avgB = totalPixels > 0 ? Float(sumB / Double(totalPixels)) : 128.0
+        
+        return RGBAnalysisResult(histogram: bins, totalPixels: totalPixels, avgR: avgR, avgG: avgG, avgB: avgB)
+    }
+    
+    public func calculateRawLuminanceHistogram(for cgImage: CGImage) -> (bins: [Int], totalPixels: Int) {
+        let result = calculateRGBAnalysis(for: cgImage)
+        return (result.histogram, result.totalPixels)
+    }
+    
+    /// Automatically analyze CGImage and return optimal Lightroom-like tone and white balance parameters
+    public func calculateAutoLightCorrection(for cgImage: CGImage, includeWhiteBalance: Bool = true) -> LightCorrectionParams {
+        let analysis = calculateRGBAnalysis(for: cgImage)
+        if includeWhiteBalance {
+            return AutoLightCorrector.analyzeFull(rgbResult: analysis)
+        } else {
+            return AutoLightCorrector.analyze(histogram: analysis.histogram, totalPixelCount: analysis.totalPixels)
+        }
+    }
+    
+    /// Calculate Auto White Balance parameters only
+    public func calculateAutoWhiteBalance(for cgImage: CGImage) -> (temperature: Float, tint: Float) {
+        let analysis = calculateRGBAnalysis(for: cgImage)
+        return AutoLightCorrector.analyzeWhiteBalance(avgR: analysis.avgR, avgG: analysis.avgG, avgB: analysis.avgB)
     }
 }
 

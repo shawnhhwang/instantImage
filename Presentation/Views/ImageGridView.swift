@@ -1,222 +1,555 @@
 import SwiftUI
+import AppKit
 
-struct ImageGridView: View {
+public struct ImageGridView: View {
     @ObservedObject var viewModel: AppViewModel
+    @State private var hoveredCardIndex: Int? = nil
     
-    // Grid configuration
-    private let columns = [
-        GridItem(.adaptive(minimum: 140, maximum: 180), spacing: 14)
-    ]
+    public init(viewModel: AppViewModel) {
+        self.viewModel = viewModel
+    }
     
-    var body: some View {
+    private var gridColumns: [GridItem] {
+        [GridItem(.adaptive(minimum: CGFloat(viewModel.thumbnailScale), maximum: CGFloat(viewModel.thumbnailScale * 1.5)), spacing: 14)]
+    }
+    
+    public var body: some View {
         VStack(spacing: 0) {
-            // Premium Filter Bar (ACDSee style)
-            HStack(spacing: 16) {
-                HStack(spacing: 4) {
-                    Image(systemName: "line.3.horizontal.decrease.circle.fill")
-                        .font(.system(size: 12))
-                        .foregroundColor(.blue)
-                    Text("選片篩選器:")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.primary.opacity(0.75))
-                }
-                
-                // Star Rating Filter buttons
-                HStack(spacing: 4) {
-                    FilterButton(label: "全部", isSelected: viewModel.filterRating == 0) {
-                        viewModel.filterRating = 0
-                        viewModel.updateDisplayedImages()
-                    }
-                    
-                    ForEach(1...5, id: \.self) { stars in
-                        FilterButton(icon: "star.fill", label: "\(stars)+", isSelected: viewModel.filterRating == stars, selectedColor: .orange) {
-                            viewModel.filterRating = stars
-                            viewModel.updateDisplayedImages()
-                        }
-                    }
-                }
-                
-                Divider()
-                    .frame(height: 12)
-                
-                // Tagged Filter button
-                FilterButton(icon: "flag.fill", label: "僅顯示標記 (T)", isSelected: viewModel.filterTaggedOnly, selectedColor: .red) {
-                    viewModel.filterTaggedOnly.toggle()
-                    viewModel.updateDisplayedImages()
-                }
-                
-                Spacer()
-                
-                // Total Count HUD
-                Text("共 \(viewModel.displayedImages.count) / \(viewModel.images.count) 張影像")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary)
-                    .padding(.vertical, 3)
-                    .padding(.horizontal, 6)
-                    .background(Color.primary.opacity(0.04))
-                    .cornerRadius(4)
-            }
-            .padding(.vertical, 8)
-            .padding(.horizontal, 16)
-            .background(Color(NSColor.windowBackgroundColor))
-            .overlay(
-                VStack {
-                    Spacer()
-                    Rectangle().fill(Color(NSColor.gridColor).opacity(0.35)).frame(height: 1)
-                }
-            )
+            // MARK: - Filter, Search & Sort Control Deck
+            controlDeck
             
+            // MARK: - Batch Action Floating Island (if items selected)
+            if !viewModel.selectedIndexes.isEmpty {
+                batchActionIsland
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
+            // MARK: - Photo Grid Content Area
             ScrollView {
                 if viewModel.displayedImages.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.system(size: 48))
-                            .foregroundColor(.secondary.opacity(0.4))
-                        Text(viewModel.selectedFolder == nil ? "請在左側欄選取或開啟影像資料夾" : "此篩選條件下沒有任何支援的影像")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, minHeight: 400)
-                    .padding(.top, 80)
+                    emptyStateView
                 } else {
-                    LazyVGrid(columns: columns, spacing: 16) {
+                    LazyVGrid(columns: gridColumns, spacing: 16) {
                         ForEach(0..<viewModel.displayedImages.count, id: \.self) { index in
-                            let item = viewModel.displayedImages[index]
-                            let key = item.url.path
-                            let isSelected = viewModel.selectedImageIndex == index
-                            
-                            VStack(alignment: .leading, spacing: 6) {
-                                // Thumbnail Frame
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .fill(Color(NSColor.controlBackgroundColor))
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(isSelected ? Color.blue : Color.clear, lineWidth: 2.5)
-                                        )
-                                        .shadow(color: isSelected ? Color.blue.opacity(0.3) : Color.black.opacity(0.1), radius: isSelected ? 8 : 2, x: 0, y: 1)
-                                    
-                                    if let cgImage = viewModel.thumbnails[key] {
-                                        Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                            .frame(height: 130)
-                                            .clipped()
-                                            .cornerRadius(6)
-                                            .padding(isSelected ? 3 : 1)
-                                            .transition(.opacity.animation(.easeIn(duration: 0.15)))
-                                    } else {
-                                        ProgressView()
-                                            .scaleEffect(0.8)
-                                    }
-                                    
-                                    // Dimension HUD Overlay (top right)
-                                    if let exif = viewModel.exifMetadata[key], let w = exif.width, let h = exif.height {
-                                        Text("\(w)x\(h)")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(.vertical, 2)
-                                            .padding(.horizontal, 4)
-                                            .background(Color.black.opacity(0.6))
-                                            .foregroundColor(.white)
-                                            .cornerRadius(4)
-                                            .padding(6)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-                                    }
-                                    
-                                    // Tag Flag Overlay (top-left)
-                                    if let exif = viewModel.exifMetadata[key], exif.isTagged {
-                                        Image(systemName: "flag.fill")
-                                            .font(.system(size: 9, weight: .bold))
-                                            .padding(4)
-                                            .background(Circle().fill(Color.red))
-                                            .foregroundColor(.white)
-                                            .padding(6)
-                                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                                            .transition(.scale.combined(with: .opacity))
-                                    }
-                                    
-                                    // Star Rating Overlay (bottom-left)
-                                    if let exif = viewModel.exifMetadata[key], exif.rating > 0 {
-                                        HStack(spacing: 1) {
-                                            ForEach(0..<exif.rating, id: \.self) { _ in
-                                                Image(systemName: "star.fill")
-                                                    .font(.system(size: 8))
-                                                    .foregroundColor(.orange)
-                                            }
-                                        }
-                                        .padding(.vertical, 2)
-                                        .padding(.horizontal, 4)
-                                        .background(Color.black.opacity(0.6))
-                                        .cornerRadius(4)
-                                        .padding(6)
-                                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                                    }
-                                }
-                                .frame(height: 135)
-                                .onTapGesture {
-                                    viewModel.selectedImageIndex = index
-                                }
-                                .simultaneousGesture(TapGesture(count: 2).onEnded {
-                                    viewModel.selectedImageIndex = index
-                                    viewModel.isDetailActive = true
-                                })
-                                
-                                // Image Label / Filename
-                                Text(item.filename)
-                                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                    .foregroundColor(isSelected ? .blue : .primary.opacity(0.85))
-                                    .padding(.horizontal, 4)
-                            }
+                            photoCard(for: index)
                         }
                     }
                     .padding(16)
                 }
             }
-            .background(Color(NSColor.underPageBackgroundColor))
+            .background(LuminaTheme.Colors.bgCanvas)
         }
     }
-}
-
-// Reusable premium filter button view
-struct FilterButton: View {
-    var icon: String? = nil
-    var label: String
-    var isSelected: Bool
-    var selectedColor: Color = .blue
-    var action: () -> Void
     
-    @State private var isHovered = false
-    
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 4) {
-                if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 9))
+    // MARK: - Control Deck
+    private var controlDeck: some View {
+        VStack(spacing: 8) {
+            // Upper Deck: Search & Culling Filter Pills
+            HStack(spacing: 10) {
+                // Search Field
+                LuminaSearchField(text: $viewModel.searchQuery)
+                    .frame(maxWidth: 240)
+                
+                Divider()
+                    .background(LuminaTheme.Colors.borderSubtle)
+                    .frame(height: 18)
+                
+                // Star Rating Quick Filter
+                HStack(spacing: 4) {
+                    LuminaPillButton(
+                        label: "全部",
+                        isSelected: viewModel.filterRating == 0,
+                        selectedColor: LuminaTheme.Colors.cyanAccent
+                    ) {
+                        viewModel.filterRating = 0
+                        viewModel.updateDisplayedImages()
+                    }
+                    
+                    ForEach(1...5, id: \.self) { star in
+                        LuminaPillButton(
+                            icon: "star.fill",
+                            label: "\(star)+",
+                            isSelected: viewModel.filterRating == star,
+                            selectedColor: LuminaTheme.Colors.amberGold
+                        ) {
+                            viewModel.filterRating = star
+                            viewModel.updateDisplayedImages()
+                        }
+                    }
                 }
-                Text(label)
-                    .font(.system(size: 10, weight: .bold))
+                
+                // Tagged Filter
+                LuminaPillButton(
+                    icon: "flag.fill",
+                    label: "標記",
+                    isSelected: viewModel.filterTaggedOnly,
+                    selectedColor: LuminaTheme.Colors.neonCoral,
+                    shortcut: "T"
+                ) {
+                    viewModel.filterTaggedOnly.toggle()
+                    viewModel.updateDisplayedImages()
+                }
+                
+                // RAW format Filter
+                LuminaPillButton(
+                    label: "RAW",
+                    isSelected: viewModel.filterOnlyRaw,
+                    selectedColor: LuminaTheme.Colors.electricIndigo
+                ) {
+                    viewModel.filterOnlyRaw.toggle()
+                    viewModel.updateDisplayedImages()
+                }
+                
+                // Edited / Light-Corrected Filter
+                LuminaPillButton(
+                    icon: "wand.and.stars",
+                    label: "已校光",
+                    isSelected: viewModel.filterOnlyEdited,
+                    selectedColor: LuminaTheme.Colors.mintEmerald
+                ) {
+                    viewModel.filterOnlyEdited.toggle()
+                    viewModel.updateDisplayedImages()
+                }
+                
+                Spacer()
+                
+                // Total Count HUD Chip
+                HStack(spacing: 4) {
+                    Text("顯示 \(viewModel.displayedImages.count)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(LuminaTheme.Colors.textPrimary)
+                    Text("/ \(viewModel.images.count)")
+                        .font(.system(size: 10, weight: .medium, design: .monospaced))
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule()
+                        .fill(Color.white.opacity(0.06))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 0.75))
+                )
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(isSelected ? selectedColor.opacity(0.12) : (isHovered ? Color.primary.opacity(0.04) : Color.clear))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(isSelected ? selectedColor.opacity(0.3) : (isHovered ? Color.primary.opacity(0.1) : Color.clear), lineWidth: 1)
-            )
-            .foregroundColor(isSelected ? selectedColor : .primary.opacity(0.7))
-            .scaleEffect(isHovered ? 1.02 : 1.0)
-            .animation(.spring(response: 0.15, dampingFraction: 0.7), value: isHovered)
+            
+            // Lower Deck: Sorting, Grid Zoom Slider
+            HStack(spacing: 12) {
+                // Sorting Controls
+                HStack(spacing: 6) {
+                    Text("排序方式:")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    
+                    Menu {
+                        ForEach(SortOption.allCases) { opt in
+                            Button(action: {
+                                viewModel.sortOption = opt
+                            }) {
+                                HStack {
+                                    Text(opt.rawValue)
+                                    if viewModel.sortOption == opt {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(viewModel.sortOption.rawValue)
+                                .font(.system(size: 10.5, weight: .bold))
+                                .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 8))
+                                .foregroundColor(LuminaTheme.Colors.textSecondary)
+                        }
+                        .padding(.vertical, 3)
+                        .padding(.horizontal, 7)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.white.opacity(0.06))
+                        )
+                    }
+                    .menuStyle(BorderlessButtonMenuStyle())
+                    
+                    // Order Asc/Desc Toggle
+                    Button(action: {
+                        viewModel.sortAscending.toggle()
+                    }) {
+                        Image(systemName: viewModel.sortAscending ? "arrow.up.circle.fill" : "arrow.down.circle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(LuminaTheme.Colors.textSecondary)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help(viewModel.sortAscending ? "目前為遞增排序 (點擊切換為遞減)" : "目前為遞減排序 (點擊切換為遞增)")
+                }
+                
+                Spacer()
+                
+                // Grid Zoom Slider
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.3x3")
+                        .font(.system(size: 10))
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    
+                    Slider(value: $viewModel.thumbnailScale, in: 120...300)
+                        .frame(width: 90)
+                        .controlSize(.mini)
+                    
+                    Image(systemName: "square.grid.2x2")
+                        .font(.system(size: 11))
+                        .foregroundColor(LuminaTheme.Colors.textSecondary)
+                }
+            }
         }
-        .buttonStyle(PlainButtonStyle())
+        .padding(.vertical, 10)
+        .padding(.horizontal, 16)
+        .background(
+            LuminaTheme.Colors.bgSurface.opacity(0.9)
+                .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+        )
+        .overlay(
+            VStack {
+                Spacer()
+                Rectangle().fill(LuminaTheme.Colors.borderSubtle).frame(height: 1)
+            }
+        )
+    }
+    
+    // MARK: - Batch Action Floating Island
+    private var batchActionIsland: some View {
+        HStack(spacing: 10) {
+            HStack(spacing: 4) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                Text("已選取 \(viewModel.selectedIndexes.count) 張")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textPrimary)
+            }
+            .padding(.trailing, 4)
+            
+            // Compare Button (if >= 2 selected)
+            if viewModel.selectedIndexes.count >= 2 {
+                Button(action: {
+                    viewModel.isCompareActive = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "columns.2")
+                        Text("多圖對比")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 10)
+                    .background(
+                        Capsule().fill(LuminaTheme.Gradients.brandCyanIndigo)
+                    )
+                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 6)
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+            // Batch Auto Light
+            Button(action: {
+                viewModel.batchAutoLightCorrectionForSelected()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "wand.and.stars")
+                    Text("批次一鍵校光")
+                }
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundColor(LuminaTheme.Colors.amberGold)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule().fill(LuminaTheme.Colors.amberGold.opacity(0.18))
+                        .overlay(Capsule().stroke(LuminaTheme.Colors.amberGold.opacity(0.4), lineWidth: 0.75))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Paste Tone Settings
+            if viewModel.copiedLightCorrection != nil {
+                Button(action: {
+                    viewModel.pasteLightCorrectionToSelected()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Text("同步貼上調光")
+                    }
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(
+                        Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.18))
+                            .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.4), lineWidth: 0.75))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
+            Spacer()
+            
+            // Clear Selection
+            Button(action: {
+                viewModel.clearSelectedIndexes()
+            }) {
+                Text("取消選取")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 8)
+                    .background(Capsule().fill(Color.white.opacity(0.08)))
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.vertical, 6)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .fill(Color.black.opacity(0.85))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .stroke(LuminaTheme.Colors.cyanAccent.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
+    }
+    
+    // MARK: - Photographic Viewfinder Card
+    private func photoCard(for index: Int) -> some View {
+        let item = viewModel.displayedImages[index]
+        let key = item.url.path
+        let isSelected = viewModel.selectedImageIndex == index
+        let isMultiSelected = viewModel.selectedIndexes.contains(index)
+        let isHovered = hoveredCardIndex == index
+        let metadata = viewModel.exifMetadata[key]
+        let lightParams = viewModel.lightCorrections[key]
+        let isEdited = viewModel.isAutoLightEnabled[key] == true || (lightParams != nil && !lightParams!.isNeutral)
+        
+        return VStack(alignment: .leading, spacing: 6) {
+            // Viewfinder Thumbnail Frame
+            ZStack {
+                // Card Base
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(LuminaTheme.Colors.bgSurface)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .stroke(
+                                isSelected ? LuminaTheme.Colors.cyanAccent : (isHovered ? Color.white.opacity(0.25) : Color.white.opacity(0.06)),
+                                lineWidth: isSelected ? 2 : 1
+                            )
+                    )
+                    .shadow(color: isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.35) : Color.black.opacity(0.3), radius: isSelected ? 10 : 3, x: 0, y: 2)
+                
+                // Actual Image Thumbnail
+                if let cgImage = viewModel.thumbnails[key] {
+                    Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(height: CGFloat(viewModel.thumbnailScale * 0.85))
+                        .clipped()
+                        .cornerRadius(8)
+                        .padding(isSelected ? 3 : 2)
+                        .transition(.opacity.animation(.easeIn(duration: 0.15)))
+                } else {
+                    ProgressView()
+                        .scaleEffect(0.7)
+                        .frame(height: CGFloat(viewModel.thumbnailScale * 0.85))
+                }
+                
+                // Viewfinder Reticle Brackets (Autofocus aesthetic on active selection)
+                if isSelected {
+                    ViewfinderBracket(color: LuminaTheme.Colors.cyanAccent, size: 10, thickness: 2)
+                        .padding(5)
+                }
+                
+                // Top-Left Overlays: Flag Badge & Edit Indicator
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack(spacing: 4) {
+                        // Tag Flag (interactive toggle)
+                        Button(action: {
+                            viewModel.toggleTagged(for: item)
+                        }) {
+                            let isTagged = metadata?.isTagged ?? false
+                            Image(systemName: isTagged ? "flag.fill" : "flag")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(isTagged ? .white : Color.white.opacity(0.6))
+                                .padding(4)
+                                .background(
+                                    Circle()
+                                        .fill(isTagged ? LuminaTheme.Colors.neonCoral : Color.black.opacity(0.55))
+                                )
+                                .luminaGlow(color: LuminaTheme.Colors.neonCoral, radius: 4, isActive: isTagged)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        // Edited Badge
+                        if isEdited {
+                            Image(systemName: "wand.and.stars")
+                                .font(.system(size: 8, weight: .bold))
+                                .foregroundColor(.yellow)
+                                .padding(3)
+                                .background(Circle().fill(Color.black.opacity(0.6)))
+                        }
+                    }
+                    Spacer()
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                
+                // Top-Right Overlays: Format badge & Dimensions
+                VStack(alignment: .trailing, spacing: 3) {
+                    let ext = item.url.pathExtension.uppercased()
+                    LuminaBadge(ext, color: ext == "RAW" || ext == "CR2" || ext == "NEF" || ext == "ARW" ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textSecondary)
+                    
+                    if let exif = metadata, let w = exif.width, let h = exif.height {
+                        let mp = Double(w * h) / 1_000_000.0
+                        LuminaBadge(mp >= 1.0 ? String(format: "%.0fMP", mp) : "\(w)×\(h)")
+                    }
+                    
+                    Spacer()
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                
+                // Bottom-Left Overlay: Interactive Rating Bar
+                VStack {
+                    Spacer()
+                    HStack {
+                        let curRating = metadata?.rating ?? 0
+                        HStack(spacing: 2) {
+                            ForEach(1...5, id: \.self) { star in
+                                Image(systemName: star <= curRating ? "star.fill" : "star")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(star <= curRating ? LuminaTheme.Colors.amberGold : Color.white.opacity(0.25))
+                                    .onTapGesture {
+                                        viewModel.updateRating(for: item, to: curRating == star ? 0 : star)
+                                    }
+                            }
+                        }
+                        .padding(.vertical, 2.5)
+                        .padding(.horizontal, 5)
+                        .background(
+                            Capsule().fill(Color.black.opacity(0.7))
+                        )
+                        
+                        Spacer()
+                        
+                        // Multi-Select Checkbox Overlay
+                        Button(action: {
+                            viewModel.toggleSelectIndex(index)
+                        }) {
+                            Image(systemName: isMultiSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(isMultiSelected ? LuminaTheme.Colors.cyanAccent : Color.white.opacity(0.6))
+                                .background(Circle().fill(Color.black.opacity(0.4)))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                }
+                .padding(6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            }
+            .frame(height: CGFloat(viewModel.thumbnailScale * 0.85))
+            .onTapGesture {
+                viewModel.selectedImageIndex = index
+            }
+            .simultaneousGesture(TapGesture(count: 2).onEnded {
+                viewModel.selectedImageIndex = index
+                viewModel.isDetailActive = true
+                viewModel.calculateHistogramForSelected()
+            })
+            
+            // Filename & Metadata Footer
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.filename)
+                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                    .foregroundColor(isSelected ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                
+                if let exif = metadata {
+                    HStack(spacing: 4) {
+                        if let ap = exif.aperture {
+                            Text(String(format: "f/%.1f", ap))
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundColor(LuminaTheme.Colors.textTertiary)
+                        }
+                        if let ss = exif.shutterSpeed {
+                            let ssText = ss >= 1.0 ? String(format: "%.1fs", ss) : String(format: "1/%.0f", 1.0 / ss)
+                            Text(ssText)
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundColor(LuminaTheme.Colors.textTertiary)
+                        }
+                        if let iso = exif.iso {
+                            Text("ISO \(iso)")
+                                .font(.system(size: 9, weight: .medium, design: .monospaced))
+                                .foregroundColor(LuminaTheme.Colors.textTertiary)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 3)
+        }
+        .scaleEffect(isHovered ? 1.015 : 1.0)
+        .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isHovered)
+        .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isSelected)
         .onHover { hovering in
-            isHovered = hovering
+            hoveredCardIndex = hovering ? index : nil
         }
+    }
+    
+    // MARK: - Empty State View
+    private var emptyStateView: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color.white.opacity(0.03))
+                    .frame(width: 88, height: 88)
+                
+                Image(systemName: "photo.badge.magnifyingglass")
+                    .font(.system(size: 38))
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent.opacity(0.6))
+                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 12)
+            }
+            
+            VStack(spacing: 6) {
+                Text(viewModel.selectedFolder == nil ? "尚未開啟影像資料夾" : "查無符合篩選條件的影像")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textPrimary)
+                
+                Text(viewModel.selectedFolder == nil ? "請於左側欄點擊「開啟影像資料夾」開始極速選片" : "請調整上方星級、標籤或搜尋關鍵字")
+                    .font(.system(size: 12))
+                    .foregroundColor(LuminaTheme.Colors.textSecondary)
+            }
+            
+            if viewModel.selectedFolder == nil {
+                Button(action: {
+                    Task {
+                        if let selected = await SecurityScopedBookmarkManager.shared.selectFolder() {
+                            viewModel.selectFolder(selected)
+                        }
+                    }
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "folder.badge.plus")
+                        Text("選取資料夾")
+                    }
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.black)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(
+                        Capsule().fill(LuminaTheme.Colors.cyanAccent)
+                    )
+                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
+                }
+                .buttonStyle(PlainButtonStyle())
+                .padding(.top, 4)
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 450)
+        .padding(.top, 60)
     }
 }

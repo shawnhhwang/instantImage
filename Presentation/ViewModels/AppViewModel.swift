@@ -3,6 +3,16 @@ import SwiftUI
 import CoreGraphics
 import AppKit
 
+public enum SortOption: String, CaseIterable, Identifiable {
+    case filename = "檔名"
+    case date = "拍攝日期"
+    case size = "檔案大小"
+    case rating = "星級評等"
+    case iso = "感光度 (ISO)"
+    
+    public var id: String { rawValue }
+}
+
 @MainActor
 public final class AppViewModel: ObservableObject {
     @Published public var selectedFolder: URL?
@@ -10,8 +20,23 @@ public final class AppViewModel: ObservableObject {
     @Published public var images: [ImageItem] = []
     @Published public var displayedImages: [ImageItem] = []
     
+    // Filters & Search
     @Published public var filterRating: Int = 0
     @Published public var filterTaggedOnly: Bool = false
+    @Published public var filterOnlyRaw: Bool = false
+    @Published public var filterOnlyEdited: Bool = false
+    @Published public var searchQuery: String = ""
+    
+    // Sorting
+    @Published public var sortOption: SortOption = .filename
+    @Published public var sortAscending: Bool = true
+    
+    // UI Layout & Inspection Controls
+    @Published public var thumbnailScale: Double = 165
+    @Published public var isShortcutSheetVisible: Bool = false
+    @Published public var isFilmstripVisible: Bool = true
+    @Published public var isSidebarOpenInDetail: Bool = true
+    @Published public var splitCurtainPosition: CGFloat = 0.5
     
     @Published public var selectedImageIndex: Int?
     @Published public var isDetailActive: Bool = false
@@ -21,6 +46,34 @@ public final class AppViewModel: ObservableObject {
     @Published public var isLoading: Bool = false
     @Published public var isZoomed: Bool = false
     @Published public var activeHistogram: [Float] = []
+    
+    // Lightroom-style Light / Tone Correction
+    @Published public var lightCorrections: [String: LightCorrectionParams] = [:]
+    @Published public var isAutoLightEnabled: [String: Bool] = [:]
+    @Published public var isBeforeAfterComparisonActive: Bool = false
+    @Published public var isClippingWarningActive: Bool = false
+    public var copiedLightCorrection: LightCorrectionParams? = nil
+    
+    @Published public var favoriteFolders: [URL] = []
+    private let favoritesKey = "com.project.lumina.favorites"
+    
+    // Toast system
+    @Published public var toastMessage: String? = nil
+    private var toastTimer: Task<Void, Never>? = nil
+    
+    // Culling Move Destination
+    @Published public var cullingDestinationFolder: URL? = nil
+    private let cullingDestinationKey = "com.project.lumina.cullingDestination"
+    
+    // Loupe Magnifier properties
+    @Published public var loupeLocation: CGPoint = .zero
+    @Published public var isHoveringImage: Bool = false
+    @Published public var isLoupeEnabled: Bool = false
+    
+    // Compare Mode properties
+    @Published public var selectedIndexes: Set<Int> = []
+    @Published public var isCompareActive: Bool = false
+    @Published public var focusedCompareIndex: Int = 0
     
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
@@ -34,6 +87,8 @@ public final class AppViewModel: ObservableObject {
         setupDatabase()
         setupDirectoryMonitor()
         loadInitialBookmarks()
+        loadFavorites()
+        loadCullingDestination()
         setupKeyboardNotificationObserver()
     }
     
@@ -114,10 +169,23 @@ public final class AppViewModel: ObservableObject {
     }
     
     public func updateDisplayedImages() {
-        displayedImages = images.filter { item in
+        let query = searchQuery.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        
+        var filtered = images.filter { item in
             let key = item.url.path
             let metadata = exifMetadata[key]
             
+            // Search Query Filter
+            if !query.isEmpty {
+                let nameMatch = item.filename.lowercased().contains(query)
+                let makeMatch = metadata?.cameraMake?.lowercased().contains(query) ?? false
+                let modelMatch = metadata?.cameraModel?.lowercased().contains(query) ?? false
+                if !nameMatch && !makeMatch && !modelMatch {
+                    return false
+                }
+            }
+            
+            // Star Rating Filter
             if filterRating > 0 {
                 let rating = metadata?.rating ?? 0
                 if rating < filterRating {
@@ -125,6 +193,7 @@ public final class AppViewModel: ObservableObject {
                 }
             }
             
+            // Tagged Filter
             if filterTaggedOnly {
                 let isTagged = metadata?.isTagged ?? false
                 if !isTagged {
@@ -132,8 +201,55 @@ public final class AppViewModel: ObservableObject {
                 }
             }
             
+            // RAW Format Filter
+            if filterOnlyRaw {
+                let ext = item.url.pathExtension.lowercased()
+                let rawExts = ["raw", "cr2", "nef", "arw", "dng", "orf", "rw2"]
+                if !rawExts.contains(ext) {
+                    return false
+                }
+            }
+            
+            // Edited Filter
+            if filterOnlyEdited {
+                let isEdited = isAutoLightEnabled[key] == true || (lightCorrections[key] != nil && !lightCorrections[key]!.isNeutral)
+                if !isEdited {
+                    return false
+                }
+            }
+            
             return true
         }
+        
+        // Dynamic Multi-Criteria Sorting
+        filtered.sort { (a, b) -> Bool in
+            let aMeta = exifMetadata[a.url.path]
+            let bMeta = exifMetadata[b.url.path]
+            
+            let result: Bool
+            switch sortOption {
+            case .filename:
+                result = a.filename.localizedStandardCompare(b.filename) == .orderedAscending
+            case .date:
+                let aDate = aMeta?.creationDate ?? a.creationDate ?? Date.distantPast
+                let bDate = bMeta?.creationDate ?? b.creationDate ?? Date.distantPast
+                result = aDate < bDate
+            case .size:
+                result = a.sizeBytes < b.sizeBytes
+            case .rating:
+                let aRating = aMeta?.rating ?? 0
+                let bRating = bMeta?.rating ?? 0
+                result = aRating < bRating
+            case .iso:
+                let aISO = aMeta?.iso ?? 0
+                let bISO = bMeta?.iso ?? 0
+                result = aISO < bISO
+            }
+            
+            return sortAscending ? result : !result
+        }
+        
+        displayedImages = filtered
         
         // Keep selection in bounds
         if let index = selectedImageIndex {
@@ -152,7 +268,16 @@ public final class AppViewModel: ObservableObject {
                     if Task.isCancelled || self.loadGeneration != generation { return }
                     let key = item.url.path
                     if self.exifMetadata[key] == nil {
-                        if let cachedExif = try? await repo.getMetadata(for: key) {
+                        if var cachedExif = try? await repo.getMetadata(for: key) {
+                            // Sync XMP sidecar values if available and they differ from the database cache
+                            if let xmpData = XmpMetadataWriter.readXmpSidecar(for: item.url) {
+                                if cachedExif.rating != xmpData.rating || cachedExif.isTagged != xmpData.isTagged {
+                                    cachedExif.rating = xmpData.rating
+                                    cachedExif.isTagged = xmpData.isTagged
+                                    try? await repo.updateRating(for: key, rating: xmpData.rating)
+                                    try? await repo.updateTagged(for: key, isTagged: xmpData.isTagged)
+                                }
+                            }
                             loadedMetadata[key] = cachedExif
                         }
                     }
@@ -333,6 +458,175 @@ public final class AppViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Lightroom-style Auto Light Correction
+    
+    /// Toggle or recalculate Auto Light Correction for currently active/selected image
+    public func toggleAutoLightForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        let currentlyEnabled = isAutoLightEnabled[key] ?? false
+        
+        if currentlyEnabled {
+            // Disable auto light correction
+            isAutoLightEnabled[key] = false
+            lightCorrections[key] = .neutral
+            showToast("已關閉一鍵校光")
+        } else {
+            // Enable and calculate optimal Lightroom parameters
+            applyAutoLightCorrection(for: image)
+        }
+    }
+    
+    /// Trigger Auto Light Correction calculation for a given ImageItem
+    public func applyAutoLightCorrection(for image: ImageItem) {
+        let key = image.url.path
+        
+        if let thumbnail = thumbnails[key] {
+            let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
+            self.lightCorrections[key] = params
+            self.isAutoLightEnabled[key] = true
+            let evString = String(format: "%+.1f EV", params.exposure)
+            showToast("一鍵校光已套用 (曝光 \(evString), 對比 \(String(format: "%.2f", params.contrast)))")
+        } else {
+            Task {
+                do {
+                    let thumbnailSize = AppSettings.shared.rendering.thumbnailSize.width
+                    let thumbnail = try await ImageLoaderService.shared.loadThumbnail(from: image.url, maxPixelSize: thumbnailSize)
+                    let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
+                    self.lightCorrections[key] = params
+                    self.isAutoLightEnabled[key] = true
+                    let evString = String(format: "%+.1f EV", params.exposure)
+                    self.showToast("一鍵校光已套用 (曝光 \(evString))")
+                } catch {
+                    self.showToast("校光計算失敗")
+                }
+            }
+        }
+    }
+    
+    // Feature A: Auto White Balance
+    public func applyAutoWhiteBalanceForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        
+        let applyWB: ((temperature: Float, tint: Float)) -> Void = { [weak self] wb in
+            guard let self = self else { return }
+            var current = self.lightCorrections[key] ?? .neutral
+            current.temperature = wb.temperature
+            current.tint = wb.tint
+            self.lightCorrections[key] = current
+            self.isAutoLightEnabled[key] = true
+            self.showToast("自動白平衡: 色溫 \(Int(wb.temperature))K, 色調 \(Int(wb.tint))")
+        }
+        
+        if let thumbnail = thumbnails[key] {
+            let wb = ImageLoaderService.shared.calculateAutoWhiteBalance(for: thumbnail)
+            applyWB(wb)
+        } else {
+            Task {
+                do {
+                    let thumbnailSize = AppSettings.shared.rendering.thumbnailSize.width
+                    let thumbnail = try await ImageLoaderService.shared.loadThumbnail(from: image.url, maxPixelSize: thumbnailSize)
+                    let wb = ImageLoaderService.shared.calculateAutoWhiteBalance(for: thumbnail)
+                    applyWB(wb)
+                } catch {
+                    self.showToast("白平衡計算失敗")
+                }
+            }
+        }
+    }
+    
+    // Feature B: Clipping Warning Toggle
+    public func toggleClippingWarning() {
+        isClippingWarningActive.toggle()
+        showToast(isClippingWarningActive ? "已開啟過曝/死黑剪裁警告 (J)" : "已關閉剪裁警告")
+    }
+    
+    // Feature C: Batch Sync Settings
+    public func copyLightCorrectionForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        let params = lightCorrections[key] ?? .neutral
+        copiedLightCorrection = params
+        showToast("已複製照片調光參數 (曝光 \(String(format: "%+.2f EV", params.exposure)))")
+    }
+    
+    public func pasteLightCorrectionToSelected() {
+        guard let copied = copiedLightCorrection else {
+            showToast("剪貼簿尚無調光參數")
+            return
+        }
+        
+        if !selectedIndexes.isEmpty {
+            // Batch paste to all selected images
+            var count = 0
+            for idx in selectedIndexes where idx >= 0 && idx < displayedImages.count {
+                let item = displayedImages[idx]
+                lightCorrections[item.url.path] = copied
+                isAutoLightEnabled[item.url.path] = !copied.isNeutral
+                count += 1
+            }
+            showToast("已將調光參數同步套用至 \(count) 張照片")
+        } else if let image = selectedImage {
+            // Paste to single image
+            let key = image.url.path
+            lightCorrections[key] = copied
+            isAutoLightEnabled[key] = !copied.isNeutral
+            showToast("已套用調光參數")
+        }
+    }
+    
+    /// Batch run Auto Light Correction on all selected images (or all displayed images)
+    public func batchAutoLightCorrectionForSelected() {
+        let targets: [ImageItem]
+        if !selectedIndexes.isEmpty {
+            targets = selectedIndexes.compactMap { idx in
+                guard idx >= 0 && idx < displayedImages.count else { return nil }
+                return displayedImages[idx]
+            }
+        } else {
+            targets = displayedImages
+        }
+        
+        guard !targets.isEmpty else { return }
+        showToast("正在批次校光 \(targets.count) 張照片...")
+        
+        Task {
+            var processed = 0
+            for item in targets {
+                let key = item.url.path
+                let thumbnail: CGImage
+                if let cached = thumbnails[key] {
+                    thumbnail = cached
+                } else {
+                    guard let loaded = try? await ImageLoaderService.shared.loadThumbnail(from: item.url, maxPixelSize: 320) else { continue }
+                    thumbnail = loaded
+                }
+                let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
+                self.lightCorrections[key] = params
+                self.isAutoLightEnabled[key] = true
+                processed += 1
+            }
+            self.showToast("已完成 \(processed) 張照片批次一鍵校光")
+        }
+    }
+    
+    /// Update manual correction parameters for the selected image
+    public func updateLightCorrection(for image: ImageItem, params: LightCorrectionParams) {
+        let key = image.url.path
+        lightCorrections[key] = params
+        isAutoLightEnabled[key] = !params.isNeutral
+    }
+    
+    /// Reset light adjustments to standard original neutral
+    public func resetLightCorrectionForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        lightCorrections[key] = .neutral
+        isAutoLightEnabled[key] = false
+        showToast("已重設光線調整")
+    }
+    
     /// Look-ahead prefetching of adjacent images for seamless ACDSee-style culling
     public func prefetchAdjacentImages() {
         guard let currentIndex = selectedImageIndex, !displayedImages.isEmpty else { return }
@@ -357,32 +651,25 @@ public final class AppViewModel: ObservableObject {
         loadThumbnailsAndMetadata(for: items, generation: loadGeneration)
     }
     
-    // Culling Actions
-    public func updateRatingForSelected(to rating: Int) {
-        guard let index = selectedImageIndex, index >= 0, index < displayedImages.count else { return }
-        let item = displayedImages[index]
+    // Centralized Culling Actions for specific items
+    public func updateRating(for item: ImageItem, to rating: Int) {
         let key = item.url.path
-        
         var metadata = exifMetadata[key] ?? ImageMetadata(id: key, url: item.url, filename: item.filename)
         metadata.rating = rating
         exifMetadata[key] = metadata
         
         Task {
             try? await exifRepo?.updateRating(for: key, rating: rating)
+            XmpMetadataWriter.writeXmpSidecar(for: item.url, rating: rating, isTagged: metadata.isTagged)
         }
         
         if filterRating > 0 {
             updateDisplayedImages()
         }
-        
-        LoggerManager.shared.log("Updated rating for \(item.filename) to \(rating) stars", level: .info)
     }
     
-    public func toggleTaggedForSelected() {
-        guard let index = selectedImageIndex, index >= 0, index < displayedImages.count else { return }
-        let item = displayedImages[index]
+    public func toggleTagged(for item: ImageItem) {
         let key = item.url.path
-        
         var metadata = exifMetadata[key] ?? ImageMetadata(id: key, url: item.url, filename: item.filename)
         metadata.isTagged.toggle()
         let newTagged = metadata.isTagged
@@ -390,17 +677,59 @@ public final class AppViewModel: ObservableObject {
         
         Task {
             try? await exifRepo?.updateTagged(for: key, isTagged: newTagged)
+            XmpMetadataWriter.writeXmpSidecar(for: item.url, rating: metadata.rating, isTagged: newTagged)
         }
         
         if filterTaggedOnly {
             updateDisplayedImages()
         }
         
-        LoggerManager.shared.log("Toggled tagged for \(item.filename) to \(newTagged)", level: .info)
+        showToast(newTagged ? "已新增標籤" : "已移除標籤")
+    }
+    
+    // Selection Culling Actions (triggered by keyboard or global buttons)
+    public func updateRatingForSelected(to rating: Int) {
+        let index: Int
+        if isCompareActive {
+            let compareItems = Array(selectedIndexes).sorted()
+            guard focusedCompareIndex >= 0, focusedCompareIndex < compareItems.count else { return }
+            index = compareItems[focusedCompareIndex]
+        } else {
+            guard let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count else { return }
+            index = selIdx
+        }
+        
+        let item = displayedImages[index]
+        updateRating(for: item, to: rating)
+        showToast("評等已更新為 \(rating) 星")
+    }
+    
+    public func toggleTaggedForSelected() {
+        let index: Int
+        if isCompareActive {
+            let compareItems = Array(selectedIndexes).sorted()
+            guard focusedCompareIndex >= 0, focusedCompareIndex < compareItems.count else { return }
+            index = compareItems[focusedCompareIndex]
+        } else {
+            guard let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count else { return }
+            index = selIdx
+        }
+        
+        let item = displayedImages[index]
+        toggleTagged(for: item)
     }
     
     public func deleteSelectedImage() {
-        guard let index = selectedImageIndex, index >= 0, index < displayedImages.count else { return }
+        let index: Int
+        if isCompareActive {
+            let compareItems = Array(selectedIndexes).sorted()
+            guard focusedCompareIndex >= 0, focusedCompareIndex < compareItems.count else { return }
+            index = compareItems[focusedCompareIndex]
+        } else {
+            guard let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count else { return }
+            index = selIdx
+        }
+        
         let item = displayedImages[index]
         let fileURL = item.url
         
@@ -421,11 +750,32 @@ public final class AppViewModel: ObservableObject {
             images.remove(at: imgIndex)
         }
         
-        selectedImageIndex = nextSelectIndex
+        // Adjust selected indexes after deletion
+        var newSelectedIndexes = Set<Int>()
+        for idx in selectedIndexes {
+            if idx < index {
+                newSelectedIndexes.insert(idx)
+            } else if idx > index {
+                newSelectedIndexes.insert(idx - 1)
+            }
+        }
+        selectedIndexes = newSelectedIndexes
+        
+        if isCompareActive {
+            if selectedIndexes.isEmpty {
+                isCompareActive = false
+            } else if focusedCompareIndex >= selectedIndexes.count {
+                focusedCompareIndex = max(0, selectedIndexes.count - 1)
+            }
+        } else {
+            selectedImageIndex = nextSelectIndex
+        }
+        
         updateDisplayedImages()
         if isDetailActive { calculateHistogramForSelected() }
         
         LoggerManager.shared.log("Successfully trashed \(item.filename)", level: .info)
+        showToast("已將 \(item.filename) 移至資源回收桶")
     }
     
     private func setupKeyboardNotificationObserver() {
@@ -459,6 +809,7 @@ public final class AppViewModel: ObservableObject {
         static let key0: UInt16 = 29
         static let tKey: UInt16 = 17
         static let delete: UInt16 = 51
+        static let forwardDelete: UInt16 = 117
     }
     
     private func handleKeyboardEvent(_ event: NSEvent) {
@@ -477,10 +828,16 @@ public final class AppViewModel: ObservableObject {
             if isDetailActive {
                 isDetailActive = false
             }
+            isCompareActive = false
         case KeyCode.fKey, KeyCode.enter:
             toggleFullScreen()
         case KeyCode.zKey:
             toggleZoom()
+        case 46: // M Key
+            moveSelectedImageToDestination()
+        case 37: // L Key
+            isLoupeEnabled.toggle()
+            showToast(isLoupeEnabled ? "已開啟放大鏡 (L)" : "已關閉放大鏡")
         case KeyCode.key1:
             updateRatingForSelected(to: 1)
         case KeyCode.key2:
@@ -495,10 +852,278 @@ public final class AppViewModel: ObservableObject {
             updateRatingForSelected(to: 0)
         case KeyCode.tKey:
             toggleTaggedForSelected()
-        case KeyCode.delete:
-            deleteSelectedImage()
+        case 14: // E Key (Auto Exposure / Auto Light)
+            if isDetailActive {
+                toggleAutoLightForSelected()
+            }
+        case 13: // W Key (Auto White Balance)
+            if isDetailActive {
+                applyAutoWhiteBalanceForSelected()
+            }
+        case 38: // J Key (Lightroom Clipping Warning toggle)
+            if isDetailActive {
+                toggleClippingWarning()
+            }
+        case 8: // C Key (Cmd+C: Copy Settings)
+            if event.modifierFlags.contains(.command) {
+                copyLightCorrectionForSelected()
+            }
+        case 9: // V Key (Cmd+V: Paste / Sync Settings)
+            if event.modifierFlags.contains(.command) {
+                pasteLightCorrectionToSelected()
+            }
+        case 42: // Backslash \ Key (Lightroom Before/After toggle)
+            if isDetailActive {
+                isBeforeAfterComparisonActive.toggle()
+                showToast(isBeforeAfterComparisonActive ? "已開啟前後對比 (\\)" : "已關閉前後對比")
+            }
+        case 44: // '?' or '/' Key (Shortcut Guide)
+            isShortcutSheetVisible.toggle()
+        case 34: // 'I' Key (Toggle Inspector Sidebar)
+            if isDetailActive {
+                isSidebarOpenInDetail.toggle()
+            }
+        case 11: // 'B' Key (Toggle Filmstrip)
+            if isDetailActive {
+                isFilmstripVisible.toggle()
+            }
+        case KeyCode.delete, KeyCode.forwardDelete:
+            if event.modifierFlags.contains(.command) {
+                deleteSelectedImage()
+            }
         default:
             break
         }
+    }
+    
+    private func loadFavorites() {
+        let paths = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
+        let bookmarksMap = UserDefaults.standard.dictionary(forKey: "com.project.lumina.bookmarks") as? [String: Data] ?? [:]
+        
+        var resolvedFavorites: [URL] = []
+        for path in paths {
+            if let data = bookmarksMap[path] {
+                do {
+                    var isStale = false
+                    let url = try URL(
+                        resolvingBookmarkData: data,
+                        options: .withSecurityScope,
+                        relativeTo: nil,
+                        bookmarkDataIsStale: &isStale
+                    )
+                    if isStale {
+                        SecurityScopedBookmarkManager.shared.saveBookmark(for: url)
+                    }
+                    resolvedFavorites.append(url)
+                } catch {
+                    LoggerManager.shared.log("Failed to resolve favorite bookmark for \(path): \(error.localizedDescription)", level: .error)
+                    let url = URL(fileURLWithPath: path)
+                    resolvedFavorites.append(url)
+                }
+            } else {
+                let url = URL(fileURLWithPath: path)
+                resolvedFavorites.append(url)
+            }
+        }
+        self.favoriteFolders = resolvedFavorites
+    }
+    
+    public func isFavorite(_ url: URL) -> Bool {
+        return favoriteFolders.contains(where: { $0.path == url.path })
+    }
+    
+    public func toggleFavorite(_ url: URL) {
+        let path = url.path
+        var paths = UserDefaults.standard.stringArray(forKey: favoritesKey) ?? []
+        
+        if let index = paths.firstIndex(of: path) {
+            paths.remove(at: index)
+            favoriteFolders.removeAll(where: { $0.path == path })
+        } else {
+            paths.append(path)
+            SecurityScopedBookmarkManager.shared.saveBookmark(for: url)
+            if !favoriteFolders.contains(where: { $0.path == path }) {
+                favoriteFolders.append(url)
+            }
+        }
+        UserDefaults.standard.set(paths, forKey: favoritesKey)
+    }
+    
+    // Toast System
+    public func showToast(_ message: String) {
+        Task { @MainActor in
+            self.toastMessage = message
+            self.toastTimer?.cancel()
+            self.toastTimer = Task {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                if !Task.isCancelled {
+                    self.toastMessage = nil
+                }
+            }
+        }
+    }
+    
+    // Culling Destination
+    private func loadCullingDestination() {
+        if let data = UserDefaults.standard.data(forKey: cullingDestinationKey) {
+            do {
+                var isStale = false
+                let url = try URL(
+                    resolvingBookmarkData: data,
+                    options: .withSecurityScope,
+                    relativeTo: nil,
+                    bookmarkDataIsStale: &isStale
+                )
+                if isStale {
+                    SecurityScopedBookmarkManager.shared.saveBookmark(for: url)
+                }
+                _ = url.startAccessingSecurityScopedResource()
+                self.cullingDestinationFolder = url
+            } catch {
+                LoggerManager.shared.log("Failed to resolve culling destination bookmark: \(error.localizedDescription)", level: .error)
+            }
+        }
+    }
+    
+    public func selectCullingDestinationFolder() {
+        Task { @MainActor in
+            let openPanel = NSOpenPanel()
+            openPanel.title = "選取選片搬移目標資料夾"
+            openPanel.showsResizeIndicator = true
+            openPanel.showsHiddenFiles = false
+            openPanel.canChooseFiles = false
+            openPanel.canChooseDirectories = true
+            openPanel.allowsMultipleSelection = false
+            
+            if openPanel.runModal() == .OK {
+                if let url = openPanel.url {
+                    do {
+                        let data = try url.bookmarkData(
+                            options: .withSecurityScope,
+                            includingResourceValuesForKeys: nil,
+                            relativeTo: nil
+                        )
+                        UserDefaults.standard.set(data, forKey: cullingDestinationKey)
+                        _ = url.startAccessingSecurityScopedResource()
+                        self.cullingDestinationFolder = url
+                        self.showToast("已設定選片目標：\(url.lastPathComponent)")
+                    } catch {
+                        LoggerManager.shared.log("Failed to create bookmark for culling destination: \(error.localizedDescription)", level: .error)
+                    }
+                }
+            }
+        }
+    }
+    
+    public func moveSelectedImageToDestination() {
+        let index: Int
+        if isCompareActive {
+            let compareItems = Array(selectedIndexes).sorted()
+            guard focusedCompareIndex >= 0, focusedCompareIndex < compareItems.count else { return }
+            index = compareItems[focusedCompareIndex]
+        } else {
+            guard let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count else { return }
+            index = selIdx
+        }
+        
+        guard let destFolder = cullingDestinationFolder else {
+            selectCullingDestinationFolder()
+            return
+        }
+        
+        let item = displayedImages[index]
+        let sourceURL = item.url
+        let destURL = destFolder.appendingPathComponent(item.filename)
+        
+        LoggerManager.shared.log("Moving file: \(sourceURL.path) to \(destURL.path)", level: .info)
+        
+        Task.detached(priority: .userInitiated) { [weak self] in
+            guard let self = self else { return }
+            
+            let sourceAccess = SecurityScopedBookmarkManager.shared.performAccessingSecurityScopedResource(at: sourceURL.deletingLastPathComponent()) { () -> Bool in
+                let destAccess = SecurityScopedBookmarkManager.shared.performAccessingSecurityScopedResource(at: destFolder) { () -> Bool in
+                    do {
+                        let fileManager = FileManager.default
+                        var finalDestURL = destURL
+                        if fileManager.fileExists(atPath: destURL.path) {
+                            let ext = destURL.pathExtension
+                            let nameWithoutExt = destURL.deletingPathExtension().lastPathComponent
+                            var counter = 1
+                            while fileManager.fileExists(atPath: finalDestURL.path) {
+                                finalDestURL = destFolder.appendingPathComponent("\(nameWithoutExt)_\(counter)").appendingPathExtension(ext)
+                                counter += 1
+                            }
+                        }
+                        
+                        try fileManager.moveItem(at: sourceURL, to: finalDestURL)
+                        return true
+                    } catch {
+                        LoggerManager.shared.log("Failed to move file: \(error.localizedDescription)", level: .error)
+                        return false
+                    }
+                }
+                return destAccess
+            }
+            
+            if sourceAccess {
+                await MainActor.run {
+                    var nextSelectIndex: Int? = nil
+                    if self.displayedImages.count > 1 {
+                        if index < self.displayedImages.count - 1 {
+                            nextSelectIndex = index
+                        } else {
+                            nextSelectIndex = index - 1
+                        }
+                    }
+                    
+                    if let imgIndex = self.images.firstIndex(where: { $0.url == sourceURL }) {
+                        self.images.remove(at: imgIndex)
+                    }
+                    
+                    // Adjust selected indexes after move
+                    var newSelectedIndexes = Set<Int>()
+                    for idx in self.selectedIndexes {
+                        if idx < index {
+                            newSelectedIndexes.insert(idx)
+                        } else if idx > index {
+                            newSelectedIndexes.insert(idx - 1)
+                        }
+                    }
+                    self.selectedIndexes = newSelectedIndexes
+                    
+                    if self.isCompareActive {
+                        if self.selectedIndexes.isEmpty {
+                            self.isCompareActive = false
+                        } else if self.focusedCompareIndex >= self.selectedIndexes.count {
+                            self.focusedCompareIndex = max(0, self.selectedIndexes.count - 1)
+                        }
+                    } else {
+                        self.selectedImageIndex = nextSelectIndex
+                    }
+                    
+                    self.updateDisplayedImages()
+                    if self.isDetailActive { self.calculateHistogramForSelected() }
+                    
+                    self.showToast("已搬移 \(item.filename) 至目標資料夾")
+                }
+            } else {
+                await MainActor.run {
+                    self.showToast("搬移失敗，請檢查權限")
+                }
+            }
+        }
+    }
+    
+    // Multi-Select & Compare Mode helpers
+    public func toggleSelectIndex(_ index: Int) {
+        if selectedIndexes.contains(index) {
+            selectedIndexes.remove(index)
+        } else {
+            selectedIndexes.insert(index)
+        }
+    }
+    
+    public func clearSelectedIndexes() {
+        selectedIndexes.removeAll()
     }
 }

@@ -94,7 +94,7 @@ public struct AppSettings: Codable, Sendable {
         // Fallback default configuration in case loading fails
         return AppSettings(
             appConfiguration: AppConfiguration(environment: "Development", maxMemoryCacheMegabytes: 512, diskCacheLimitGigabytes: 10),
-            fileSystem: FileSystemSettings(supportedExtensions: [".jpg", ".jpeg", ".png", ".heic", ".tiff", ".raw", ".cr2", ".nef", ".arw"], enableRealtimeFSEvents: true, fsEventsDebounceMilliseconds: 300),
+            fileSystem: FileSystemSettings(supportedExtensions: [".jpg", ".jpeg", ".png", ".heic", ".heif", ".tiff", ".raw", ".cr2", ".nef", ".arw"], enableRealtimeFSEvents: true, fsEventsDebounceMilliseconds: 300),
             rendering: RenderingSettings(targetFPS: 120, thumbnailSize: RenderingSettings.ThumbnailSizeSettings(width: 256, height: 256), useMetalAcceleration: true),
             logging: LoggingSettings(subsystem: "com.project.lumina", logLevel: "Debug", logToDisk: true)
         )

@@ -33,15 +33,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if self.isEditingText() {
                 return event
             }
-            
-            let isDelete = event.keyCode == 51
-            let hasCmd = event.modifierFlags.contains(.command)
-            
-            // Only capture Delete if Command is held (Cmd + Delete)
-            if isDelete && !hasCmd {
-                return event
-            }
-            
             let shortcutKeys: Set<UInt16> = [
                 123, // Left Arrow
                 124, // Right Arrow
@@ -59,7 +50,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 23,  // 5 key (Rating 5)
                 29,  // 0 key (Clear Rating)
                 17,  // T key (Tag Toggle)
-                51   // Delete key (Cmd+Delete)
+                46,  // M key (Move to destination)
+                37,  // L key (Loupe toggle)
+                51,  // Delete key
+                117, // Forward Delete key (Del)
+                14,  // E key (Auto light)
+                13,  // W key (Auto white balance)
+                38,  // J key (Clipping warning)
+                42,  // \ key (Before/After)
+                8,   // C key (Copy settings)
+                9,   // V key (Paste settings)
+                44,  // ? / / key (Shortcut guide)
+                34,  // I key (Inspector toggle)
+                11   // B key (Filmstrip toggle)
             ]
             
             if shortcutKeys.contains(event.keyCode) {
