@@ -25,12 +25,12 @@ public struct FilmstripView: View {
                             ZStack(alignment: .bottom) {
                                 // Thumbnail frame
                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(Color.black.opacity(0.6))
+                                    .fill(Color.white)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                            .stroke(isSelected ? LuminaTheme.Colors.cyanAccent : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1)
+                                            .stroke(isSelected ? LuminaTheme.Colors.cyanAccent : Color.black.opacity(0.1), lineWidth: isSelected ? 2 : 1)
                                     )
-                                    .shadow(color: isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.4) : Color.clear, radius: 6, x: 0, y: 0)
+                                    .shadow(color: isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.35) : LuminaTheme.Shadows.ambient, radius: isSelected ? 6 : 2, x: 0, y: 1)
                                 
                                 if let cgImage = viewModel.thumbnails[key] {
                                     Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
@@ -84,11 +84,13 @@ public struct FilmstripView: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.black.opacity(0.75))
+                    .fill(Color.white.opacity(0.92))
+                    .background(VisualEffectView(material: .sidebar, blendingMode: .withinWindow).clipShape(RoundedRectangle(cornerRadius: 12)))
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.white.opacity(0.12), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
                     )
+                    .shadow(color: LuminaTheme.Shadows.ambient, radius: 10, x: 0, y: 4)
             )
             .padding(.horizontal, 16)
             .padding(.bottom, 12)

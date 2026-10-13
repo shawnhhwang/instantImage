@@ -38,37 +38,35 @@ public struct ContentView: View {
                         .zIndex(2)
                 }
                 
-                // Loading Overlay with Camera Aperture Pulse
+                // Loading Indicator: Minimal Floating Pill at Top (Non-Intrusive, No Black Screen Veil)
                 if viewModel.isLoading {
-                    ZStack {
-                        Color.black.opacity(0.4)
-                            .edgesIgnoringSafeArea(.all)
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .scaleEffect(0.85)
                         
-                        VStack(spacing: 12) {
-                            ProgressView()
-                                .scaleEffect(1.1)
-                                .colorScheme(.dark)
-                            
-                            Text("正在快速解析影像快取...")
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(LuminaTheme.Colors.textPrimary)
-                        }
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 24)
-                        .background(
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .fill(Color.black.opacity(0.85))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                                )
-                        )
-                        .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 12)
+                        Text("正在快速解析影像快取...")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.textPrimary)
                     }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .background(
+                        Capsule()
+                            .fill(Color.white.opacity(0.96))
+                            .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow).clipShape(Capsule()))
+                            .overlay(
+                                Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.5), lineWidth: 1)
+                            )
+                            .shadow(color: LuminaTheme.Shadows.ambient, radius: 12, x: 0, y: 4)
+                    )
+                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
+                    .padding(.top, 14)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .transition(.move(edge: .top).combined(with: .opacity))
                     .zIndex(3)
                 }
                 
-                // Toast Notification Overlay
+                // Toast Notification Overlay (Bright Tech Crisp Pill)
                 if let toast = viewModel.toastMessage {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles")
@@ -77,18 +75,18 @@ public struct ContentView: View {
                         
                         Text(toast)
                             .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
+                            .foregroundColor(LuminaTheme.Colors.textPrimary)
                     }
                     .padding(.vertical, 9)
                     .padding(.horizontal, 18)
                     .background(
                         Capsule()
-                            .fill(Color(red: 0.08, green: 0.09, blue: 0.12).opacity(0.92))
+                            .fill(Color.white.opacity(0.96))
                             .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow).clipShape(Capsule()))
                             .overlay(
                                 Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.4), lineWidth: 1)
                             )
-                            .shadow(color: Color.black.opacity(0.5), radius: 12, x: 0, y: 6)
+                            .shadow(color: LuminaTheme.Shadows.ambient, radius: 14, x: 0, y: 6)
                     )
                     .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
                     .padding(.bottom, 28)
@@ -106,7 +104,7 @@ public struct ContentView: View {
             .navigationTitle(viewModel.selectedFolder?.lastPathComponent ?? "Lumina Pro")
         }
         .frame(minWidth: 1040, minHeight: 640)
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
 }
 

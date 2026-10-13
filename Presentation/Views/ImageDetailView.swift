@@ -16,6 +16,18 @@ final class KeyCaptureNSView: NSView {
     
     override var acceptsFirstResponder: Bool { true }
     
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.clear.cgColor
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.clear.cgColor
+    }
+    
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         DispatchQueue.main.async { [weak self] in
@@ -68,12 +80,14 @@ public struct ImageDetailView: View {
         HStack(spacing: 0) {
             // Main Darkroom Canvas Area
             ZStack {
-                // Deep Studio Obsidian Backdrop
-                Color.black.edgesIgnoringSafeArea(.all)
+                // Studio Stage Canvas Backdrop (Crisp Light Studio Neutral)
+                LuminaTheme.Colors.darkroomCanvas
+                    .edgesIgnoringSafeArea(.all)
                 
-                // Key Capture invisible overlay
+                // Key Capture invisible zero-frame helper (does not tint or overlay canvas)
                 KeyCaptureView(viewModel: viewModel)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .frame(width: 0, height: 0)
+                    .opacity(0)
                     .allowsHitTesting(false)
                 
                 if let selectedImage = viewModel.selectedImage {
@@ -160,7 +174,7 @@ public struct ImageDetailView: View {
                     .zIndex(2)
             }
         }
-        .background(Color.black)
+        .background(LuminaTheme.Colors.darkroomCanvas)
         .onAppear {
             NSApp.activate(ignoringOtherApps: true)
             viewModel.calculateHistogramForSelected()
@@ -359,7 +373,7 @@ public struct ImageDetailView: View {
                     .foregroundColor(LuminaTheme.Colors.cyanAccent)
                 Text("原圖  |  校光")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+                    .foregroundColor(LuminaTheme.Colors.textPrimary)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 8, weight: .heavy))
                     .foregroundColor(LuminaTheme.Colors.cyanAccent)
@@ -368,10 +382,11 @@ public struct ImageDetailView: View {
             .padding(.horizontal, 12)
             .background(
                 Capsule()
-                    .fill(Color.black.opacity(0.85))
+                    .fill(Color.white.opacity(0.96))
                     .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent, lineWidth: 1.5))
+                    .shadow(color: LuminaTheme.Shadows.ambient, radius: 8, x: 0, y: 2)
             )
-            .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
+            .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 6)
             .position(x: posX, y: size.height / 2)
             .gesture(
                 DragGesture()
@@ -475,8 +490,8 @@ public struct DetailsSidebarView: View {
         .padding(16)
         .frame(width: 300)
         .background(
-            LuminaTheme.Colors.bgSurface.opacity(0.85)
-                .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+            LuminaTheme.Colors.bgSurface.opacity(0.95)
+                .background(VisualEffectView(material: .sidebar, blendingMode: .withinWindow))
         )
         .overlay(
             VStack {
@@ -660,7 +675,7 @@ public struct DetailsSidebarView: View {
                     .foregroundColor(LuminaTheme.Colors.textPrimary)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.black.opacity(0.04)).overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black.opacity(0.08), lineWidth: 0.75)))
                 }
                 .buttonStyle(PlainButtonStyle())
                 
@@ -675,7 +690,7 @@ public struct DetailsSidebarView: View {
                     .foregroundColor(viewModel.copiedLightCorrection != nil ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textMuted)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.white.opacity(0.08)))
+                    .background(RoundedRectangle(cornerRadius: 5).fill(Color.black.opacity(0.04)).overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black.opacity(0.08), lineWidth: 0.75)))
                 }
                 .buttonStyle(PlainButtonStyle())
                 .disabled(viewModel.copiedLightCorrection == nil)
@@ -763,8 +778,8 @@ public struct DetailsSidebarView: View {
         .padding(.horizontal, 6)
         .background(
             RoundedRectangle(cornerRadius: 6)
-                .fill(Color.white.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.white.opacity(0.06), lineWidth: 0.75))
+                .fill(Color.black.opacity(0.03))
+                .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.black.opacity(0.06), lineWidth: 0.75))
         )
     }
     
@@ -802,7 +817,7 @@ public struct DetailsSidebarView: View {
                     ForEach(1...5, id: \.self) { star in
                         Image(systemName: star <= metadata.rating ? "star.fill" : "star")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(star <= metadata.rating ? LuminaTheme.Colors.amberGold : Color.white.opacity(0.2))
+                            .foregroundColor(star <= metadata.rating ? LuminaTheme.Colors.amberGold : Color.black.opacity(0.18))
                             .luminaGlow(color: LuminaTheme.Colors.amberGold, radius: 4, isActive: star <= metadata.rating)
                             .onTapGesture {
                                 viewModel.updateRatingForSelected(to: metadata.rating == star ? 0 : star)
@@ -829,7 +844,7 @@ public struct DetailsSidebarView: View {
                     .padding(.vertical, 4)
                     .padding(.horizontal, 10)
                     .background(
-                        Capsule().fill(metadata.isTagged ? LuminaTheme.Colors.neonCoral : Color.white.opacity(0.08))
+                        Capsule().fill(metadata.isTagged ? LuminaTheme.Colors.neonCoral : Color.black.opacity(0.05))
                     )
                     .luminaGlow(color: LuminaTheme.Colors.neonCoral, radius: 6, isActive: metadata.isTagged)
                 }
@@ -882,21 +897,21 @@ struct HistogramView: View {
             ZStack {
                 // Background Box
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.black.opacity(0.5))
+                    .fill(Color(red: 0.94, green: 0.95, blue: 0.97))
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 0.75)
+                            .stroke(Color.black.opacity(0.08), lineWidth: 0.75)
                     )
                     .frame(height: 75)
                 
                 // Grid ticks
                 HStack {
                     Spacer()
-                    Rectangle().fill(Color.white.opacity(0.04)).frame(width: 1)
+                    Rectangle().fill(Color.black.opacity(0.05)).frame(width: 1)
                     Spacer()
-                    Rectangle().fill(Color.white.opacity(0.04)).frame(width: 1)
+                    Rectangle().fill(Color.black.opacity(0.05)).frame(width: 1)
                     Spacer()
-                    Rectangle().fill(Color.white.opacity(0.04)).frame(width: 1)
+                    Rectangle().fill(Color.black.opacity(0.05)).frame(width: 1)
                     Spacer()
                 }
                 .frame(height: 75)
@@ -925,7 +940,7 @@ struct HistogramView: View {
                         }
                         .fill(
                             LinearGradient(
-                                colors: [LuminaTheme.Colors.cyanAccent.opacity(0.35), LuminaTheme.Colors.electricIndigo.opacity(0.04)],
+                                colors: [LuminaTheme.Colors.cyanAccent.opacity(0.28), LuminaTheme.Colors.cyanAccent.opacity(0.02)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -961,18 +976,19 @@ struct NavigationArrowButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 18, weight: .bold))
-                .foregroundColor(isDisabled ? Color.white.opacity(0.1) : (isHovered ? .white : Color.white.opacity(0.6)))
+                .font(.system(size: 16, weight: .bold))
+                .foregroundColor(isDisabled ? Color.black.opacity(0.12) : (isHovered ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textPrimary))
                 .frame(width: 44, height: 44)
                 .background(
                     Circle()
-                        .fill(isDisabled ? Color.clear : (isHovered ? Color.black.opacity(0.8) : Color.black.opacity(0.45)))
+                        .fill(isDisabled ? Color.clear : (isHovered ? Color.white : Color.white.opacity(0.92)))
                         .overlay(
-                            Circle().stroke(isHovered ? LuminaTheme.Colors.cyanAccent.opacity(0.6) : Color.white.opacity(0.1), lineWidth: 1)
+                            Circle().stroke(isHovered ? LuminaTheme.Colors.cyanAccent.opacity(0.6) : Color.black.opacity(0.08), lineWidth: 1)
                         )
                 )
-                .scaleEffect(isHovered ? 1.08 : 1.0)
-                .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8, isActive: isHovered && !isDisabled)
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: isHovered ? 8 : 4, x: 0, y: 2)
+                .scaleEffect(isHovered ? 1.06 : 1.0)
+                .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 6, isActive: isHovered && !isDisabled)
                 .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isHovered)
         }
         .buttonStyle(PlainButtonStyle())
@@ -1039,7 +1055,8 @@ public struct MetalImageView: NSViewRepresentable {
         let mtkView = KeyableMTKView()
         mtkView.viewModel = viewModel
         mtkView.device = MTLCreateSystemDefaultDevice()
-        mtkView.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 1)
+        mtkView.colorPixelFormat = .bgra8Unorm
+        mtkView.clearColor = MTLClearColor(red: 0.92, green: 0.93, blue: 0.95, alpha: 1.0)
         mtkView.framebufferOnly = false
         mtkView.enableSetNeedsDisplay = true
         mtkView.delegate = context.coordinator
@@ -1096,7 +1113,11 @@ public struct MetalImageView: NSViewRepresentable {
         
         override init() {
             let device = MTLCreateSystemDefaultDevice()!
-            self.context = CIContext(mtlDevice: device)
+            let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
+            self.context = CIContext(mtlDevice: device, options: [
+                .workingColorSpace: sRGB,
+                .outputColorSpace: sRGB
+            ])
             self.commandQueue = device.makeCommandQueue()
             super.init()
         }
@@ -1259,6 +1280,7 @@ public struct MetalImageView: NSViewRepresentable {
                 commandBuffer: commandBuffer,
                 mtlTextureProvider: { currentDrawable.texture }
             )
+            destination.colorSpace = CGColorSpace(name: CGColorSpace.sRGB)!
             
             do {
                 _ = try context.startTask(toRender: finalImageToRender, to: destination)
@@ -1336,7 +1358,9 @@ struct MagnifierOverlay: View {
                         .padding(.vertical, 2)
                         .padding(.horizontal, 6)
                         .background(
-                            Capsule().fill(Color.black.opacity(0.85))
+                            Capsule().fill(Color.white.opacity(0.95))
+                                .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.5), lineWidth: 1))
+                                .shadow(color: LuminaTheme.Shadows.ambient, radius: 4, x: 0, y: 1)
                         )
                         .offset(y: 12)
                 }

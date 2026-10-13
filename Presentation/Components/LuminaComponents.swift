@@ -52,10 +52,10 @@ public struct LuminaBadge: View {
     let text: String
     var icon: String? = nil
     var color: Color = LuminaTheme.Colors.textSecondary
-    var bgColor: Color = Color.black.opacity(0.55)
-    var strokeColor: Color = Color.white.opacity(0.12)
+    var bgColor: Color = Color.white.opacity(0.9)
+    var strokeColor: Color = Color.black.opacity(0.08)
     
-    public init(_ text: String, icon: String? = nil, color: Color = LuminaTheme.Colors.textSecondary, bgColor: Color = Color.black.opacity(0.55), strokeColor: Color = Color.white.opacity(0.12)) {
+    public init(_ text: String, icon: String? = nil, color: Color = LuminaTheme.Colors.textSecondary, bgColor: Color = Color.white.opacity(0.9), strokeColor: Color = Color.black.opacity(0.08)) {
         self.text = text
         self.icon = icon
         self.color = color
@@ -83,6 +83,7 @@ public struct LuminaBadge: View {
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
                         .stroke(strokeColor, lineWidth: 0.75)
                 )
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 2, x: 0, y: 1)
         )
     }
 }
@@ -124,16 +125,16 @@ public struct LuminaIconButton: View {
         Button(action: action) {
             ZStack {
                 Circle()
-                    .fill(isActive ? activeColor.opacity(0.2) : (isHovered ? LuminaTheme.Colors.bgGlassHover : Color.black.opacity(0.45)))
+                    .fill(isActive ? activeColor.opacity(0.16) : (isHovered ? LuminaTheme.Colors.bgGlassHover : LuminaTheme.Colors.bgSurface))
                     .overlay(
                         Circle()
-                            .stroke(isActive ? activeColor.opacity(0.7) : (isHovered ? Color.white.opacity(0.2) : Color.white.opacity(0.08)), lineWidth: 1)
+                            .stroke(isActive ? activeColor.opacity(0.7) : (isHovered ? Color.black.opacity(0.18) : Color.black.opacity(0.08)), lineWidth: 1)
                     )
-                    .shadow(color: isActive ? activeColor.opacity(0.35) : Color.black.opacity(0.2), radius: isActive ? 6 : 2, x: 0, y: 1)
+                    .shadow(color: isActive ? activeColor.opacity(0.3) : LuminaTheme.Shadows.ambient, radius: isActive ? 6 : 2, x: 0, y: 1)
                 
                 Image(systemName: icon)
                     .font(.system(size: iconSize, weight: .semibold))
-                    .foregroundColor(isActive ? activeColor : (isHovered ? .white : LuminaTheme.Colors.textSecondary))
+                    .foregroundColor(isActive ? activeColor : (isHovered ? LuminaTheme.Colors.textPrimary : LuminaTheme.Colors.textSecondary))
             }
             .frame(width: size, height: size)
             .scaleEffect(isHovered ? 1.05 : 1.0)
@@ -202,7 +203,7 @@ public struct LuminaPillButton: View {
                         .padding(.horizontal, 4.5)
                         .background(
                             Capsule()
-                                .fill(isSelected ? selectedColor.opacity(0.25) : Color.white.opacity(0.08))
+                                .fill(isSelected ? selectedColor.opacity(0.2) : Color.black.opacity(0.06))
                         )
                 }
             }
@@ -211,10 +212,10 @@ public struct LuminaPillButton: View {
             .padding(.horizontal, 10)
             .background(
                 Capsule()
-                    .fill(isSelected ? selectedColor.opacity(0.14) : (isHovered ? LuminaTheme.Colors.bgGlassHover : LuminaTheme.Colors.bgGlass))
+                    .fill(isSelected ? selectedColor.opacity(0.14) : (isHovered ? LuminaTheme.Colors.bgGlassHover : LuminaTheme.Colors.bgSurface))
                     .overlay(
                         Capsule()
-                            .stroke(isSelected ? selectedColor.opacity(0.5) : (isHovered ? Color.white.opacity(0.16) : Color.white.opacity(0.06)), lineWidth: 1)
+                            .stroke(isSelected ? selectedColor.opacity(0.5) : (isHovered ? Color.black.opacity(0.16) : Color.black.opacity(0.08)), lineWidth: 1)
                     )
             )
             .luminaGlow(color: selectedColor, radius: 6, isActive: isSelected)
@@ -262,7 +263,7 @@ public struct LuminaRatingBar: View {
                 
                 Image(systemName: isFilled ? "star.fill" : "star")
                     .font(.system(size: starSize, weight: .bold))
-                    .foregroundColor(isFilled ? LuminaTheme.Colors.amberGold : Color.white.opacity(0.18))
+                    .foregroundColor(isFilled ? LuminaTheme.Colors.amberGold : Color.black.opacity(0.16))
                     .luminaGlow(color: LuminaTheme.Colors.amberGold, radius: 4, isActive: isFilled)
                     .contentShape(Rectangle())
                     .onTapGesture {
@@ -284,8 +285,9 @@ public struct LuminaRatingBar: View {
         .padding(.horizontal, 6)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.45))
-                .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 0.75))
+                .fill(LuminaTheme.Colors.bgSurface)
+                .overlay(Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.75))
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 3, x: 0, y: 1)
         )
     }
 }
@@ -341,10 +343,10 @@ public struct LuminaPrecisionSlider: View {
                         .padding(.horizontal, 5)
                         .background(
                             RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                                .fill(Color.black.opacity(0.4))
+                                .fill(Color.black.opacity(0.04))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 3.5, style: .continuous)
-                                        .stroke(abs(value - defaultValue) > 0.001 ? LuminaTheme.Colors.cyanAccent.opacity(0.4) : Color.white.opacity(0.08), lineWidth: 0.75)
+                                        .stroke(abs(value - defaultValue) > 0.001 ? LuminaTheme.Colors.cyanAccent.opacity(0.4) : Color.black.opacity(0.08), lineWidth: 0.75)
                                 )
                         )
                 }
@@ -366,7 +368,7 @@ public struct LuminaPrecisionSlider: View {
                     ZStack(alignment: .leading) {
                         // Base track bar
                         RoundedRectangle(cornerRadius: 2.5)
-                            .fill(trackGradient ?? LinearGradient(colors: [Color.white.opacity(0.12)], startPoint: .leading, endPoint: .trailing))
+                            .fill(trackGradient ?? LinearGradient(colors: [Color.black.opacity(0.08)], startPoint: .leading, endPoint: .trailing))
                             .frame(height: h)
                         
                         // Active colored delta bar from default tick
@@ -382,7 +384,7 @@ public struct LuminaPrecisionSlider: View {
                         
                         // Default zero tick indicator
                         Rectangle()
-                            .fill(Color.white.opacity(0.6))
+                            .fill(Color.black.opacity(0.35))
                             .frame(width: 1.5, height: 7)
                             .offset(x: zeroX - 0.75)
                     }
@@ -437,18 +439,19 @@ public struct LuminaSearchField: View {
                     .foregroundColor(LuminaTheme.Colors.textMuted)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
-                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.white.opacity(0.06)))
+                    .background(RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.05)))
             }
         }
         .padding(.vertical, 5)
         .padding(.horizontal, 9)
         .background(
             RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(Color.black.opacity(0.45))
+                .fill(LuminaTheme.Colors.bgSurface)
                 .overlay(
                     RoundedRectangle(cornerRadius: 7, style: .continuous)
-                        .stroke(isFocused ? LuminaTheme.Colors.cyanAccent.opacity(0.6) : Color.white.opacity(0.08), lineWidth: 1)
+                        .stroke(isFocused ? LuminaTheme.Colors.cyanAccent.opacity(0.8) : Color.black.opacity(0.10), lineWidth: 1)
                 )
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 2, x: 0, y: 1)
         )
         .animation(.easeOut(duration: 0.15), value: isFocused)
     }

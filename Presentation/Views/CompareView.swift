@@ -68,8 +68,8 @@ public struct CompareView: View {
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
             .background(
-                LuminaTheme.Colors.bgSurface.opacity(0.9)
-                    .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+                LuminaTheme.Colors.bgSurface.opacity(0.95)
+                    .background(VisualEffectView(material: .sidebar, blendingMode: .withinWindow))
             )
             .overlay(
                 VStack {
@@ -113,23 +113,23 @@ public struct CompareView: View {
                                 if compareItems.count > 2 {
                                     compareCell(item: compareItems[2], cIdx: 2, isFocused: viewModel.focusedCompareIndex == 2) { viewModel.focusedCompareIndex = 2 }
                                 } else {
-                                    Color.black
+                                    LuminaTheme.Colors.darkroomCanvas
                                 }
                                 if compareItems.count > 3 {
                                     compareCell(item: compareItems[3], cIdx: 3, isFocused: viewModel.focusedCompareIndex == 3) { viewModel.focusedCompareIndex = 3 }
                                 } else {
-                                    Color.black
+                                    LuminaTheme.Colors.darkroomCanvas
                                 }
                             }
                         }
                     )
                 
                 layout
-                    .background(Color.black)
+                    .background(LuminaTheme.Colors.darkroomCanvas)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
-        .background(Color.black)
+        .background(LuminaTheme.Colors.darkroomCanvas)
         .onAppear {
             viewModel.focusedCompareIndex = 0
         }
@@ -154,7 +154,7 @@ public struct CompareView: View {
             )
             .overlay(
                 Rectangle()
-                    .stroke(isFocused ? LuminaTheme.Colors.cyanAccent : Color.white.opacity(0.08), lineWidth: isFocused ? 2.5 : 1)
+                    .stroke(isFocused ? LuminaTheme.Colors.cyanAccent : Color.black.opacity(0.1), lineWidth: isFocused ? 2.5 : 1)
             )
             .onTapGesture {
                 onSelect()
@@ -176,8 +176,9 @@ public struct CompareView: View {
                         .padding(.vertical, 3.5)
                         .padding(.horizontal, 8)
                         .background(
-                            Capsule().fill(Color.black.opacity(0.75))
-                                .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 0.75))
+                            Capsule().fill(Color.white.opacity(0.92))
+                                .overlay(Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.75))
+                                .shadow(color: LuminaTheme.Shadows.ambient, radius: 4, x: 0, y: 1)
                         )
                     
                     Spacer()
@@ -192,7 +193,7 @@ public struct CompareView: View {
                             Text("最佳入選")
                                 .font(.system(size: 10, weight: .bold))
                         }
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .padding(.vertical, 3.5)
                         .padding(.horizontal, 8)
                         .background(
@@ -224,7 +225,7 @@ public struct CompareView: View {
                         ForEach(1...5, id: \.self) { star in
                             Image(systemName: star <= metadata.rating ? "star.fill" : "star")
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(star <= metadata.rating ? LuminaTheme.Colors.amberGold : Color.white.opacity(0.25))
+                                .foregroundColor(star <= metadata.rating ? LuminaTheme.Colors.amberGold : Color.black.opacity(0.18))
                                 .onTapGesture {
                                     updateItemRating(item: item, to: metadata.rating == star ? 0 : star)
                                 }
@@ -232,7 +233,11 @@ public struct CompareView: View {
                     }
                     .padding(.vertical, 3.5)
                     .padding(.horizontal, 7)
-                    .background(Capsule().fill(Color.black.opacity(0.75)))
+                    .background(
+                        Capsule().fill(Color.white.opacity(0.92))
+                            .overlay(Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.75))
+                            .shadow(color: LuminaTheme.Shadows.ambient, radius: 4, x: 0, y: 1)
+                    )
                     
                     // Sensor Spec Pills
                     HStack(spacing: 4) {
@@ -259,7 +264,7 @@ public struct CompareView: View {
                             .foregroundColor(metadata.isTagged ? .white : LuminaTheme.Colors.textSecondary)
                             .padding(5)
                             .background(
-                                Circle().fill(metadata.isTagged ? LuminaTheme.Colors.neonCoral : Color.black.opacity(0.75))
+                                Circle().fill(metadata.isTagged ? LuminaTheme.Colors.neonCoral : Color.white.opacity(0.92))
                             )
                     }
                     .buttonStyle(PlainButtonStyle())

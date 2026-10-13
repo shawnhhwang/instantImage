@@ -126,8 +126,8 @@ public struct ImageGridView: View {
                 .padding(.horizontal, 8)
                 .background(
                     Capsule()
-                        .fill(Color.white.opacity(0.06))
-                        .overlay(Capsule().stroke(Color.white.opacity(0.08), lineWidth: 0.75))
+                        .fill(Color.black.opacity(0.04))
+                        .overlay(Capsule().stroke(Color.black.opacity(0.08), lineWidth: 0.75))
                 )
             }
             
@@ -165,7 +165,7 @@ public struct ImageGridView: View {
                         .padding(.horizontal, 7)
                         .background(
                             RoundedRectangle(cornerRadius: 5)
-                                .fill(Color.white.opacity(0.06))
+                                .fill(Color.black.opacity(0.04))
                         )
                     }
                     .menuStyle(BorderlessButtonMenuStyle())
@@ -203,8 +203,8 @@ public struct ImageGridView: View {
         .padding(.vertical, 10)
         .padding(.horizontal, 16)
         .background(
-            LuminaTheme.Colors.bgSurface.opacity(0.9)
-                .background(VisualEffectView(material: .hudWindow, blendingMode: .withinWindow))
+            LuminaTheme.Colors.bgSurface.opacity(0.95)
+                .background(VisualEffectView(material: .sidebar, blendingMode: .withinWindow))
         )
         .overlay(
             VStack {
@@ -298,7 +298,7 @@ public struct ImageGridView: View {
                     .foregroundColor(LuminaTheme.Colors.textTertiary)
                     .padding(.vertical, 4)
                     .padding(.horizontal, 8)
-                    .background(Capsule().fill(Color.white.opacity(0.08)))
+                    .background(Capsule().fill(Color.black.opacity(0.06)))
             }
             .buttonStyle(PlainButtonStyle())
         }
@@ -306,11 +306,12 @@ public struct ImageGridView: View {
         .padding(.horizontal, 16)
         .background(
             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.black.opacity(0.85))
+                .fill(Color.white)
                 .overlay(
                     RoundedRectangle(cornerRadius: 10, style: .continuous)
                         .stroke(LuminaTheme.Colors.cyanAccent.opacity(0.4), lineWidth: 1)
                 )
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 12, x: 0, y: 4)
         )
         .padding(.horizontal, 16)
         .padding(.top, 8)
@@ -336,11 +337,11 @@ public struct ImageGridView: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 10, style: .continuous)
                             .stroke(
-                                isSelected ? LuminaTheme.Colors.cyanAccent : (isHovered ? Color.white.opacity(0.25) : Color.white.opacity(0.06)),
+                                isSelected ? LuminaTheme.Colors.cyanAccent : (isHovered ? Color.black.opacity(0.18) : Color.black.opacity(0.06)),
                                 lineWidth: isSelected ? 2 : 1
                             )
                     )
-                    .shadow(color: isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.35) : Color.black.opacity(0.3), radius: isSelected ? 10 : 3, x: 0, y: 2)
+                    .shadow(color: isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.3) : LuminaTheme.Shadows.ambient, radius: isSelected ? 8 : 3, x: 0, y: 2)
                 
                 // Actual Image Thumbnail
                 if let cgImage = viewModel.thumbnails[key] {
@@ -505,13 +506,13 @@ public struct ImageGridView: View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
-                    .fill(Color.white.opacity(0.03))
+                    .fill(Color.black.opacity(0.04))
                     .frame(width: 88, height: 88)
                 
                 Image(systemName: "photo.badge.magnifyingglass")
                     .font(.system(size: 38))
-                    .foregroundColor(LuminaTheme.Colors.cyanAccent.opacity(0.6))
-                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 12)
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent.opacity(0.8))
+                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 10)
             }
             
             VStack(spacing: 6) {
@@ -537,7 +538,7 @@ public struct ImageGridView: View {
                         Text("選取資料夾")
                     }
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(.white)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
                     .background(

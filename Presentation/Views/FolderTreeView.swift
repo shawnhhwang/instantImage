@@ -76,7 +76,7 @@ public struct FolderTreeView: View {
                 
                 Image(systemName: "camera.aperture")
                     .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.black)
+                    .foregroundColor(.white)
             }
             
             VStack(alignment: .leading, spacing: 1) {
@@ -216,11 +216,12 @@ public struct FolderTreeView: View {
         .padding(10)
         .background(
             RoundedRectangle(cornerRadius: LuminaTheme.Radius.md, style: .continuous)
-                .fill(LuminaTheme.Colors.bgSurfaceElevated.opacity(0.8))
+                .fill(LuminaTheme.Colors.bgSurfaceElevated)
                 .overlay(
                     RoundedRectangle(cornerRadius: LuminaTheme.Radius.md, style: .continuous)
                         .stroke(LuminaTheme.Colors.borderSubtle, lineWidth: 1)
                 )
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 4, x: 0, y: 1)
         )
     }
     
@@ -327,7 +328,7 @@ public struct FolderTreeView: View {
                 } else {
                     ZStack {
                         RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.white.opacity(0.06))
+                            .fill(Color.black.opacity(0.04))
                             .frame(width: 26, height: 26)
                         Image(systemName: "tray.badge.plus")
                             .font(.system(size: 11))
@@ -363,11 +364,12 @@ public struct FolderTreeView: View {
             .padding(8)
             .background(
                 RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(Color.black.opacity(0.35))
+                    .fill(LuminaTheme.Colors.bgSurfaceElevated)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8, style: .continuous)
                             .stroke(LuminaTheme.Colors.borderSubtle, lineWidth: 1)
                     )
+                    .shadow(color: LuminaTheme.Shadows.ambient, radius: 3, x: 0, y: 1)
             )
         }
     }
@@ -408,7 +410,7 @@ public struct FolderTreeView: View {
                             .padding(.horizontal, 8)
                             .background(
                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.12) : (isHovered ? Color.white.opacity(0.04) : Color.clear))
+                                    .fill(isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.12) : (isHovered ? Color.black.opacity(0.04) : Color.clear))
                             )
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -468,7 +470,7 @@ public struct FolderTreeView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .background(Color.black.opacity(0.55))
+        .background(LuminaTheme.Colors.bgSurface.opacity(0.95))
         .overlay(
             VStack {
                 Rectangle().fill(LuminaTheme.Colors.borderSubtle).frame(height: 1)

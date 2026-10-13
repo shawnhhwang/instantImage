@@ -71,7 +71,7 @@ public struct KeyboardCheatSheetView: View {
     public var body: some View {
         ZStack {
             // Backdrop dimming blur
-            Color.black.opacity(0.65)
+            Color.black.opacity(0.35)
                 .edgesIgnoringSafeArea(.all)
                 .onTapGesture {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -82,20 +82,20 @@ public struct KeyboardCheatSheetView: View {
             // Modal Sheet Card
             VStack(spacing: 0) {
                 headerView
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(LuminaTheme.Colors.borderSubtle)
                 contentGrid
-                Divider().background(Color.white.opacity(0.08))
+                Divider().background(LuminaTheme.Colors.borderSubtle)
                 footerView
             }
             .frame(width: 720)
             .background(
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color(red: 0.08, green: 0.085, blue: 0.11))
+                    .fill(Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(Color.white.opacity(0.16), lineWidth: 1)
+                            .stroke(Color.black.opacity(0.1), lineWidth: 1)
                     )
-                    .shadow(color: Color.black.opacity(0.6), radius: 30, x: 0, y: 15)
+                    .shadow(color: Color.black.opacity(0.18), radius: 30, x: 0, y: 15)
             )
             .transition(.scale(scale: 0.95).combined(with: .opacity))
         }
@@ -130,13 +130,13 @@ public struct KeyboardCheatSheetView: View {
                     .font(.system(size: 12, weight: .bold))
                     .foregroundColor(LuminaTheme.Colors.textSecondary)
                     .frame(width: 28, height: 28)
-                    .background(Circle().fill(Color.white.opacity(0.08)))
+                    .background(Circle().fill(Color.black.opacity(0.05)))
             }
             .buttonStyle(PlainButtonStyle())
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 18)
-        .background(Color.white.opacity(0.03))
+        .background(Color.black.opacity(0.02))
     }
     
     private var contentGrid: some View {
@@ -185,10 +185,10 @@ public struct KeyboardCheatSheetView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.white.opacity(0.025))
+                .fill(Color(red: 0.965, green: 0.975, blue: 0.99))
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                        .stroke(Color.black.opacity(0.06), lineWidth: 1)
                 )
         )
     }
@@ -203,19 +203,19 @@ public struct KeyboardCheatSheetView: View {
                 withAnimation { isPresented = false }
             }
             .font(.system(size: 12, weight: .bold))
-            .foregroundColor(LuminaTheme.Colors.cyanAccent)
+            .foregroundColor(.white)
             .padding(.vertical, 6)
             .padding(.horizontal, 14)
             .background(
                 Capsule()
-                    .fill(LuminaTheme.Colors.cyanAccent.opacity(0.15))
-                    .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.4), lineWidth: 1))
+                    .fill(LuminaTheme.Colors.cyanAccent)
             )
+            .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 6)
             .buttonStyle(PlainButtonStyle())
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
-        .background(Color.black.opacity(0.4))
+        .background(Color.black.opacity(0.02))
     }
 }
 
@@ -231,12 +231,12 @@ private struct KeyCap: View {
             .padding(.horizontal, 6)
             .background(
                 RoundedRectangle(cornerRadius: 5, style: .continuous)
-                    .fill(Color.white.opacity(0.09))
+                    .fill(Color.white)
                     .overlay(
                         RoundedRectangle(cornerRadius: 5, style: .continuous)
-                            .stroke(Color.white.opacity(0.2), lineWidth: 0.75)
+                            .stroke(Color.black.opacity(0.12), lineWidth: 0.75)
                     )
-                    .shadow(color: Color.black.opacity(0.4), radius: 1, x: 0, y: 1)
+                    .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
             )
     }
 }

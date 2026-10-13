@@ -1,39 +1,42 @@
 import SwiftUI
 import AppKit
 
-// MARK: - Lumina Design System (Awwwards-Caliber Aesthetic Tokens)
+// MARK: - Lumina Design System (Bright Tech Style / 明亮科技風格)
 
 public enum LuminaTheme {
     // MARK: - Colors
     public enum Colors {
-        // Deep Obsidian Backgrounds
-        public static let bgDeep = Color(red: 0.04, green: 0.045, blue: 0.06)          // #0A0B0F
-        public static let bgCanvas = Color(red: 0.065, green: 0.07, blue: 0.09)        // #111217
-        public static let bgSurface = Color(red: 0.095, green: 0.10, blue: 0.13)       // #181A21
-        public static let bgSurfaceElevated = Color(red: 0.12, green: 0.13, blue: 0.17) // #1F212B
-        public static let bgGlass = Color.white.opacity(0.04)
-        public static let bgGlassHover = Color.white.opacity(0.08)
-        public static let bgGlassActive = Color.white.opacity(0.14)
+        // Crisp, Luminous Light Tech Backgrounds
+        public static let bgDeep = Color(red: 0.94, green: 0.95, blue: 0.97)           // #F0F2F7 - Clean Sidebar
+        public static let bgCanvas = Color(red: 0.97, green: 0.98, blue: 0.99)         // #F8F9FC - Main Photo Canvas
+        public static let bgSurface = Color.white                                       // #FFFFFF - Pure White Surface
+        public static let bgSurfaceElevated = Color.white                               // #FFFFFF - Floating Card
+        public static let bgGlass = Color.white.opacity(0.88)
+        public static let bgGlassHover = Color(red: 0.93, green: 0.95, blue: 0.98)
+        public static let bgGlassActive = Color(red: 0.88, green: 0.92, blue: 0.98)
         
-        // Brand & Functional Accents
-        public static let cyanAccent = Color(red: 0.0, green: 0.90, blue: 1.0)          // #00E5FF - Lumina Neon Cyan
-        public static let amberGold = Color(red: 1.0, green: 0.72, blue: 0.12)          // #FFB81E - Rating Gold
-        public static let neonCoral = Color(red: 1.0, green: 0.22, blue: 0.38)          // #FF3861 - Tag Red / Alert
-        public static let mintEmerald = Color(red: 0.0, green: 0.90, blue: 0.46)        // #00E676 - Success / Auto Sync
-        public static let electricIndigo = Color(red: 0.40, green: 0.42, blue: 1.0)     // #666BFF - Focus highlight
-        public static let skyBlue = Color(red: 0.22, green: 0.74, blue: 1.0)            // #38BDFF - Cold tint
+        // Studio Stage Neutral (Surrounding open image without darkening it)
+        public static let darkroomCanvas = Color(red: 0.92, green: 0.93, blue: 0.95)   // #EBEFF3 - Clean Studio Gray
         
-        // Specular & Border Strokes
-        public static let borderSubtle = Color.white.opacity(0.07)
-        public static let borderMedium = Color.white.opacity(0.14)
-        public static let borderStrong = Color.white.opacity(0.24)
-        public static let borderCyan = cyanAccent.opacity(0.6)
+        // High-Tech Luminous Accents
+        public static let cyanAccent = Color(red: 0.0, green: 0.48, blue: 1.0)          // #007AFF - Electric Tech Blue
+        public static let amberGold = Color(red: 0.96, green: 0.62, blue: 0.05)         // #F59E0B - Rating Gold
+        public static let neonCoral = Color(red: 0.93, green: 0.22, blue: 0.32)         // #ED3851 - Tag Red / Alert
+        public static let mintEmerald = Color(red: 0.04, green: 0.72, blue: 0.44)       // #0BB870 - Success / Active status
+        public static let electricIndigo = Color(red: 0.39, green: 0.35, blue: 0.95)    // #6366F1 - Focus Violet
+        public static let skyBlue = Color(red: 0.12, green: 0.65, blue: 0.95)           // #1FA6F3 - Cold tint
         
-        // Typography Colors
-        public static let textPrimary = Color.white.opacity(0.96)
-        public static let textSecondary = Color.white.opacity(0.65)
-        public static let textTertiary = Color.white.opacity(0.40)
-        public static let textMuted = Color.white.opacity(0.25)
+        // Hairline Tech Borders
+        public static let borderSubtle = Color.black.opacity(0.06)
+        public static let borderMedium = Color.black.opacity(0.12)
+        public static let borderStrong = Color.black.opacity(0.20)
+        public static let borderCyan = cyanAccent.opacity(0.40)
+        
+        // Razor-Sharp High Contrast Typography
+        public static let textPrimary = Color(red: 0.07, green: 0.10, blue: 0.16)       // #121A29 - Deep Slate
+        public static let textSecondary = Color(red: 0.30, green: 0.36, blue: 0.45)     // #4D5C73 - Cool Slate
+        public static let textTertiary = Color(red: 0.55, green: 0.60, blue: 0.68)      // #8C99AD - Muted Chrome
+        public static let textMuted = Color(red: 0.72, green: 0.76, blue: 0.82)         // #B8C2D1 - Light Slate
     }
     
     // MARK: - Gradients
@@ -45,31 +48,31 @@ public enum LuminaTheme {
         )
         
         public static let glassHighlight = LinearGradient(
-            colors: [Color.white.opacity(0.18), Color.white.opacity(0.02)],
+            colors: [Color.white, Color(red: 0.97, green: 0.98, blue: 0.99)],
             startPoint: .top,
             endPoint: .bottom
         )
         
         public static let goldRadiance = LinearGradient(
-            colors: [Colors.amberGold, Color(red: 1.0, green: 0.45, blue: 0.1)],
+            colors: [Colors.amberGold, Color(red: 1.0, green: 0.50, blue: 0.1)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
         
-        public static let darkCardGradient = LinearGradient(
-            colors: [Colors.bgSurfaceElevated, Colors.bgSurface],
+        public static let lightCardGradient = LinearGradient(
+            colors: [Color.white, Color(red: 0.98, green: 0.985, blue: 0.995)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
         
         public static let tempGradient = LinearGradient(
-            colors: [Colors.skyBlue, Color.white.opacity(0.8), Colors.amberGold],
+            colors: [Colors.skyBlue, Color.white, Colors.amberGold],
             startPoint: .leading,
             endPoint: .trailing
         )
         
         public static let tintGradient = LinearGradient(
-            colors: [Colors.mintEmerald, Color.white.opacity(0.8), Color(red: 0.95, green: 0.2, blue: 0.8)],
+            colors: [Colors.mintEmerald, Color.white, Color(red: 0.90, green: 0.20, blue: 0.70)],
             startPoint: .leading,
             endPoint: .trailing
         )
@@ -77,10 +80,10 @@ public enum LuminaTheme {
     
     // MARK: - Shadows
     public enum Shadows {
-        public static let ambient = Color.black.opacity(0.35)
-        public static let glowCyan = Colors.cyanAccent.opacity(0.25)
-        public static let glowGold = Colors.amberGold.opacity(0.25)
-        public static let glowCoral = Colors.neonCoral.opacity(0.25)
+        public static let ambient = Color.black.opacity(0.06)
+        public static let glowCyan = Colors.cyanAccent.opacity(0.20)
+        public static let glowGold = Colors.amberGold.opacity(0.22)
+        public static let glowCoral = Colors.neonCoral.opacity(0.22)
     }
     
     // MARK: - Radius
@@ -94,7 +97,7 @@ public enum LuminaTheme {
     }
 }
 
-// MARK: - View Modifiers for Glassmorphism & Micro-Interactions
+// MARK: - View Modifiers for Bright Tech Glassmorphism
 
 public struct LuminaGlassStyle: ViewModifier {
     var cornerRadius: CGFloat = LuminaTheme.Radius.md
@@ -106,9 +109,9 @@ public struct LuminaGlassStyle: ViewModifier {
         content
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(isElevated ? LuminaTheme.Colors.bgSurfaceElevated.opacity(0.75) : LuminaTheme.Colors.bgSurface.opacity(0.65))
+                    .fill(isElevated ? Color.white.opacity(0.96) : Color.white.opacity(0.88))
                     .background(
-                        VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                        VisualEffectView(material: .sidebar, blendingMode: .withinWindow)
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                     )
             )
@@ -116,7 +119,7 @@ public struct LuminaGlassStyle: ViewModifier {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(strokeColor, lineWidth: strokeWidth)
             )
-            .shadow(color: LuminaTheme.Shadows.ambient, radius: isElevated ? 14 : 6, x: 0, y: isElevated ? 6 : 2)
+            .shadow(color: LuminaTheme.Shadows.ambient, radius: isElevated ? 12 : 5, x: 0, y: isElevated ? 4 : 2)
     }
 }
 
@@ -128,7 +131,7 @@ public struct LuminaGlowModifier: ViewModifier {
     public func body(content: Content) -> some View {
         if isActive {
             content
-                .shadow(color: color.opacity(0.45), radius: radius, x: 0, y: 0)
+                .shadow(color: color.opacity(0.28), radius: radius, x: 0, y: 0)
         } else {
             content
         }
