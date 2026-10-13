@@ -80,20 +80,13 @@ public struct FilmstripView: View {
                     }
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 8)
+                .frame(height: 76)
             }
+            .frame(height: 76)
             .background(
-                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                    .fill(Color.white.opacity(0.92))
-                    .background(VisualEffectView(material: .sidebar, blendingMode: .withinWindow).clipShape(RoundedRectangle(cornerRadius: 12)))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(Color.black.opacity(0.08), lineWidth: 1)
-                    )
-                    .shadow(color: LuminaTheme.Shadows.ambient, radius: 10, x: 0, y: 4)
+                Color(red: 0.975, green: 0.98, blue: 0.99)
+                    .background(VisualEffectView(material: .headerView, blendingMode: .withinWindow))
             )
-            .padding(.horizontal, 16)
-            .padding(.bottom, 12)
             .onChange(of: viewModel.selectedImageIndex) { _, newIndex in
                 if let idx = newIndex {
                     withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
@@ -102,5 +95,6 @@ public struct FilmstripView: View {
                 }
             }
         }
+        .frame(height: 76)
     }
 }

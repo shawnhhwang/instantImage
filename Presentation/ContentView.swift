@@ -17,6 +17,7 @@ public struct ContentView: View {
                 // Base Canvas: Image Grid View
                 ImageGridView(viewModel: viewModel)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .opacity(viewModel.isDetailActive || viewModel.isCompareActive ? 0 : 1)
                 
                 // Fullscreen Metal Detail View
                 if viewModel.isDetailActive {

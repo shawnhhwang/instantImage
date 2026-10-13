@@ -78,90 +78,92 @@ public struct ImageDetailView: View {
     
     public var body: some View {
         HStack(spacing: 0) {
-            // Main Darkroom Canvas Area
-            ZStack {
-                // Studio Stage Canvas Backdrop (Crisp Light Studio Neutral)
-                LuminaTheme.Colors.darkroomCanvas
-                    .edgesIgnoringSafeArea(.all)
-                
-                // Key Capture invisible zero-frame helper (does not tint or overlay canvas)
-                KeyCaptureView(viewModel: viewModel)
-                    .frame(width: 0, height: 0)
-                    .opacity(0)
-                    .allowsHitTesting(false)
-                
-                if let selectedImage = viewModel.selectedImage {
-                    let key = selectedImage.url.path
-                    let currentCorrection = viewModel.lightCorrections[key]
-                    let isAutoEnabled = viewModel.isAutoLightEnabled[key] ?? false
-                    let isBeforeAfter = viewModel.isBeforeAfterComparisonActive
-                    let isClipping = viewModel.isClippingWarningActive
+            // Main Stage: Vertical Stack of Big Image Stage + Classic Mac Bottom Filmstrip
+            VStack(spacing: 0) {
+                // Main Big Image Canvas Area
+                ZStack {
+                    // Studio Stage Canvas Backdrop (Crisp Light Studio Neutral)
+                    LuminaTheme.Colors.darkroomCanvas
+                        .edgesIgnoringSafeArea(.all)
                     
-                    GeometryReader { geo in
-                        ZStack {
-                            // Hardware-accelerated Metal Canvas
-                            MetalImageView(
-                                imageURL: selectedImage.url,
-                                isZoomed: viewModel.isZoomed,
-                                lightCorrection: currentCorrection,
-                                isBeforeAfter: isBeforeAfter,
-                                isClippingWarning: isClipping,
-                                splitPosition: viewModel.splitCurtainPosition,
-                                viewModel: viewModel
-                            )
-                            .edgesIgnoringSafeArea(.all)
-                            .id("\(key)_\(viewModel.isZoomed)_\(isAutoEnabled)_\(currentCorrection?.exposure ?? 0)_\(currentCorrection?.temperature ?? 0)_\(isBeforeAfter)_\(isClipping)_\(viewModel.splitCurtainPosition)")
-                            .gesture(
-                                TapGesture(count: 2).onEnded {
-                                    viewModel.toggleZoom()
-                                }
-                            )
-                            .onContinuousHover { phase in
-                                switch phase {
-                                case .active(let location):
-                                    viewModel.loupeLocation = location
-                                    viewModel.isHoveringImage = true
-                                case .ended:
-                                    viewModel.isHoveringImage = false
-                                }
-                            }
-                            
-                            // Interactive Draggable Split Divider Line & Handle
-                            if isBeforeAfter && currentCorrection != nil && !currentCorrection!.isNeutral {
-                                splitCurtainOverlay(in: geo.size)
-                            }
-                            
-                            // Precision 2.5x Loupe Magnifier 2.0
-                            if viewModel.isLoupeEnabled && viewModel.isHoveringImage {
-                                MagnifierOverlay(
-                                    imageURL: selectedImage.url,
-                                    mouseLocation: viewModel.loupeLocation,
-                                    viewSize: geo.size
-                                )
-                            }
-                        }
-                    }
+                    // Key Capture invisible zero-frame helper (does not tint or overlay canvas)
+                    KeyCaptureView(viewModel: viewModel)
+                        .frame(width: 0, height: 0)
+                        .opacity(0)
+                        .allowsHitTesting(false)
                     
-                    // Top Floating Dynamic Island
-                    topFloatingIsland(for: selectedImage, key: key)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                        .padding(.top, 14)
-                        .padding(.horizontal, 20)
-                    
-                    // Left / Right Navigation Touchpoints
-                    navigationArrowButtons
-                    
-                    // Bottom Section: Filmstrip & Quick HUD
-                    VStack(spacing: 8) {
-                        Spacer()
+                    if let selectedImage = viewModel.selectedImage {
+                        let key = selectedImage.url.path
+                        let currentCorrection = viewModel.lightCorrections[key]
+                        let isAutoEnabled = viewModel.isAutoLightEnabled[key] ?? false
+                        let isBeforeAfter = viewModel.isBeforeAfterComparisonActive
+                        let isClipping = viewModel.isClippingWarningActive
                         
-                        // Bottom Filmstrip Carousel (if enabled)
-                        if viewModel.isFilmstripVisible {
-                            FilmstripView(viewModel: viewModel)
-                                .transition(.move(edge: .bottom).combined(with: .opacity))
+                        GeometryReader { geo in
+                            ZStack {
+                                // Hardware-accelerated Metal Canvas
+                                MetalImageView(
+                                    imageURL: selectedImage.url,
+                                    isZoomed: viewModel.isZoomed,
+                                    lightCorrection: currentCorrection,
+                                    isBeforeAfter: isBeforeAfter,
+                                    isClippingWarning: isClipping,
+                                    splitPosition: viewModel.splitCurtainPosition,
+                                    viewModel: viewModel
+                                )
+                                .edgesIgnoringSafeArea(.all)
+                                .id("\(key)_\(viewModel.isZoomed)_\(isAutoEnabled)_\(currentCorrection?.exposure ?? 0)_\(currentCorrection?.temperature ?? 0)_\(isBeforeAfter)_\(isClipping)_\(viewModel.splitCurtainPosition)")
+                                .gesture(
+                                    TapGesture(count: 2).onEnded {
+                                        viewModel.toggleZoom()
+                                    }
+                                )
+                                .onContinuousHover { phase in
+                                    switch phase {
+                                    case .active(let location):
+                                        viewModel.loupeLocation = location
+                                        viewModel.isHoveringImage = true
+                                    case .ended:
+                                        viewModel.isHoveringImage = false
+                                    }
+                                }
+                                
+                                // Interactive Draggable Split Divider Line & Handle
+                                if isBeforeAfter && currentCorrection != nil && !currentCorrection!.isNeutral {
+                                    splitCurtainOverlay(in: geo.size)
+                                }
+                                
+                                // Precision 2.5x Loupe Magnifier 2.0
+                                if viewModel.isLoupeEnabled && viewModel.isHoveringImage {
+                                    MagnifierOverlay(
+                                        imageURL: selectedImage.url,
+                                        mouseLocation: viewModel.loupeLocation,
+                                        viewSize: geo.size
+                                    )
+                                }
+                            }
                         }
+                        
+                        // Top Floating Dynamic Island
+                        topFloatingIsland(for: selectedImage, key: key)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            .padding(.top, 14)
+                            .padding(.horizontal, 20)
+                        
+                        // Left / Right Navigation Touchpoints
+                        navigationArrowButtons
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                
+                // Bottom Section: Mac Classic Bottom Photo Strip (Placed BELOW the big image, zero overlap!)
+                if viewModel.isFilmstripVisible {
+                    Divider()
+                        .background(LuminaTheme.Colors.borderSubtle)
+                    
+                    FilmstripView(viewModel: viewModel)
+                        .frame(height: 76)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -1170,7 +1172,9 @@ public struct MetalImageView: NSViewRepresentable {
             }
         }
         
-        public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+        public func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+            view.setNeedsDisplay(view.bounds)
+        }
         
         public func draw(in view: MTKView) {
             guard let ciImage = ciImage,
