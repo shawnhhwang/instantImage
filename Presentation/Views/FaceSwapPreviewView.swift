@@ -208,9 +208,14 @@ public struct FaceSwapPreviewView: View {
     
     // MARK: - Side by Side Stage
     private func sideBySideStage(result: FaceSwapResult, size: CGSize) -> some View {
-        HStack(spacing: 8) {
+        let halfWidth = max(200, (size.width - 32) / 2)
+        let contentHeight = max(200, size.height - 24)
+        
+        return HStack(spacing: 12) {
             // Left Card: Original
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
+                LuminaBadge("原圖 (保持不變)", color: LuminaTheme.Colors.textSecondary)
+                
                 ZStack {
                     Color.white
                     
@@ -218,20 +223,19 @@ public struct FaceSwapPreviewView: View {
                         Image(nsImage: origImg)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .padding(6)
+                            .padding(8)
                     }
                 }
-                .cornerRadius(10)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.black.opacity(0.08), lineWidth: 1))
-                
-                Text("原圖 (Original)")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(LuminaTheme.Colors.textSecondary)
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.black.opacity(0.08), lineWidth: 1))
             }
-            .padding(12)
+            .frame(width: halfWidth, height: contentHeight)
+            .padding(.vertical, 8)
             
             // Right Card: Swapped
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
+                LuminaBadge("AI 換臉成果 (100% HEIC)", color: LuminaTheme.Colors.electricIndigo)
+                
                 ZStack {
                     Color.white
                     
@@ -239,19 +243,17 @@ public struct FaceSwapPreviewView: View {
                         Image(nsImage: swappedImg)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
-                            .padding(6)
+                            .padding(8)
                     }
                 }
-                .cornerRadius(10)
-                .overlay(RoundedRectangle(cornerRadius: 10).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.4), lineWidth: 1.5))
-                .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.15), radius: 10, x: 0, y: 3)
-                
-                Text("換臉成果 (Swapped HEIC)")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.4), lineWidth: 1.5))
+                .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.12), radius: 12, x: 0, y: 4)
             }
-            .padding(12)
+            .frame(width: halfWidth, height: contentHeight)
+            .padding(.vertical, 8)
         }
+        .padding(.horizontal, 10)
     }
     
     // MARK: - Bottom Decision Deck

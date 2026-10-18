@@ -86,7 +86,7 @@ public final class AppViewModel: ObservableObject {
     @Published public var isFaceSwapPreviewPresented: Bool = false
     @Published public var faceSwapTargetImage: ImageItem? = nil
     @Published public var faceSwapErrorMessage: String? = nil
-    @Published public var faceSwapPreviewMode: FaceSwapPreviewMode = .splitCurtain
+    @Published public var faceSwapPreviewMode: FaceSwapPreviewMode = .sideBySide
     @Published public var faceSwapSplitPosition: CGFloat = 0.5
     
     // FaceSwap Settings properties
@@ -1316,6 +1316,7 @@ public final class AppViewModel: ObservableObject {
                     self.currentFaceSwapResult = result
                     self.isFaceSwapProcessing = false
                     self.isFaceSwapSetupPresented = false
+                    self.faceSwapPreviewMode = .sideBySide
                     self.isFaceSwapPreviewPresented = true
                     self.faceSwapSplitPosition = 0.5
                     self.showToast("✨ AI 換臉成功！請比對成果後決定是否儲存")
@@ -1385,6 +1386,7 @@ public final class AppViewModel: ObservableObject {
                     self.isFaceSwapBatchProcessing = false
                     self.isFaceSwapSetupPresented = false
                     self.faceSwapBatchReviewIndex = 0
+                    self.faceSwapPreviewMode = .sideBySide
                     self.isFaceSwapBatchReviewPresented = true
                     let successCount = items.filter { $0.result != nil }.count
                     self.showToast("🎉 批次運算完成 (成功 \(successCount)/\(items.count))！進入逐張審查比對")
@@ -1568,8 +1570,8 @@ public final class AppViewModel: ObservableObject {
 }
 
 public enum FaceSwapPreviewMode: String, CaseIterable, Identifiable {
+    case sideBySide = "左右分開"
     case splitCurtain = "前後分割簾"
-    case sideBySide = "雙圖並排"
     
     public var id: String { rawValue }
 }
