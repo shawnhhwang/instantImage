@@ -268,10 +268,12 @@ public struct ImageGridView: View {
             
             // AI FaceSwap
             Button(action: {
-                if let firstIdx = viewModel.selectedIndexes.sorted().first,
-                   firstIdx < viewModel.displayedImages.count {
+                if viewModel.selectedIndexes.count > 1 {
+                    viewModel.openFaceSwapSetup(mode: .selected)
+                } else if let firstIdx = viewModel.selectedIndexes.sorted().first,
+                          firstIdx < viewModel.displayedImages.count {
                     let target = viewModel.displayedImages[firstIdx]
-                    viewModel.openFaceSwapSetup(for: target)
+                    viewModel.openFaceSwapSetup(for: target, mode: .single)
                 }
             }) {
                 HStack(spacing: 4) {

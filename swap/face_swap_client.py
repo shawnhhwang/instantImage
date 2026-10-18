@@ -230,6 +230,7 @@ def main():
     parser.add_argument("--face-selector-race", choices=["none", "white", "black", "latino", "asian", "indian", "arabic"], help="Face selector race (Overrides appsettings.json)")
     parser.add_argument("--reference-face-distance", type=float, help="Reference face distance (0.0 to 1.0) (Overrides appsettings.json)")
     parser.add_argument("--hash-by-inputs", type=str.upper, choices=["Y", "N"], default=None, help="Hash output filename by inputs instead of output content: Y to enable, N to disable")
+    parser.add_argument("--api-url", help="FaceFusion API endpoint URL (Overrides appsettings.json)")
     
     args = parser.parse_args()
     
@@ -298,7 +299,7 @@ def main():
             print(f"Warning: Failed to calculate source image hash: {e}")
     
     # API settings
-    api_url = config.get("api_url", "http://127.0.0.1:7860/api/predict")
+    api_url = args.api_url if args.api_url else config.get("api_url", "http://127.0.0.1:7860/api/predict")
     
     # Extract base Gradio URL for gradio_client
     gradio_url = api_url

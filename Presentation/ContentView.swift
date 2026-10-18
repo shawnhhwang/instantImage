@@ -108,13 +108,35 @@ public struct ContentView: View {
                         .zIndex(6)
                 }
                 
-                // AI FaceSwap Preview & Comparison Arena
+                // AI FaceSwap Batch Review Arena
+                if viewModel.isFaceSwapBatchReviewPresented {
+                    FaceSwapBatchReviewView(viewModel: viewModel)
+                        .zIndex(7)
+                }
+                
+                // AI FaceSwap Preview & Comparison Arena (Single)
                 if viewModel.isFaceSwapPreviewPresented {
                     FaceSwapPreviewView(viewModel: viewModel)
-                        .zIndex(7)
+                        .zIndex(8)
+                }
+                
+                // AI FaceSwap Settings Modal Overlay
+                if viewModel.isFaceSwapSettingsPresented {
+                    FaceSwapSettingsView(viewModel: viewModel)
+                        .zIndex(9)
                 }
             }
             .navigationTitle(viewModel.selectedFolder?.lastPathComponent ?? "Lumina Pro")
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Button(action: {
+                        viewModel.isFaceSwapSettingsPresented = true
+                    }) {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                    .help("FaceFusion API 端點設定")
+                }
+            }
         }
         .frame(minWidth: 1040, minHeight: 640)
         .preferredColorScheme(.light)

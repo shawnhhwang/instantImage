@@ -211,6 +211,27 @@ public struct FolderTreeView: View {
                 if taggedCount > 0 {
                     LuminaBadge("\(taggedCount) 已標記", icon: "flag.fill", color: LuminaTheme.Colors.neonCoral)
                 }
+                
+                Spacer()
+                
+                // Batch FaceSwap Action Button
+                Button(action: {
+                    viewModel.openFaceSwapSetup(mode: .folder)
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "sparkles")
+                        Text("批次換臉")
+                    }
+                    .font(.system(size: 9.5, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 7)
+                    .background(
+                        Capsule().fill(LuminaTheme.Colors.electricIndigo.opacity(0.12))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("針對此資料夾內相片執行批次 AI 換臉")
             }
         }
         .padding(10)
