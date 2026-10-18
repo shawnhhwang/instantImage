@@ -266,6 +266,29 @@ public struct ImageGridView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
+            // AI FaceSwap
+            Button(action: {
+                if let firstIdx = viewModel.selectedIndexes.sorted().first,
+                   firstIdx < viewModel.displayedImages.count {
+                    let target = viewModel.displayedImages[firstIdx]
+                    viewModel.openFaceSwapSetup(for: target)
+                }
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                    Text("AI 換臉")
+                }
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule().fill(LuminaTheme.Colors.electricIndigo.opacity(0.14))
+                        .overlay(Capsule().stroke(LuminaTheme.Colors.electricIndigo.opacity(0.35), lineWidth: 0.75))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
             // Paste Tone Settings
             if viewModel.copiedLightCorrection != nil {
                 Button(action: {
@@ -498,6 +521,26 @@ public struct ImageGridView: View {
         .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isSelected)
         .onHover { hovering in
             hoveredCardIndex = hovering ? index : nil
+        }
+        .contextMenu {
+            Button(action: {
+                viewModel.openFaceSwapSetup(for: item)
+            }) {
+                Label("AI 人臉替換 (FaceSwap)...", systemImage: "sparkles.rectangle.stack")
+            }
+            Divider()
+            Button(action: {
+                viewModel.selectedImageIndex = index
+                viewModel.isDetailActive = true
+            }) {
+                Label("檢視大圖 (Space)", systemImage: "arrow.up.left.and.arrow.down.right")
+            }
+            Button(action: {
+                viewModel.toggleTagged(for: item)
+            }) {
+                let isTagged = metadata?.isTagged ?? false
+                Label(isTagged ? "取消標記 (T)" : "標記相片 (T)", systemImage: isTagged ? "flag.slash" : "flag")
+            }
         }
     }
     

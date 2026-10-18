@@ -101,6 +101,18 @@ public struct ContentView: View {
                     KeyboardCheatSheetView(isPresented: $viewModel.isShortcutSheetVisible)
                         .zIndex(5)
                 }
+                
+                // AI FaceSwap Setup Sheet Modal Overlay
+                if viewModel.isFaceSwapSetupPresented {
+                    FaceSwapSetupView(viewModel: viewModel)
+                        .zIndex(6)
+                }
+                
+                // AI FaceSwap Preview & Comparison Arena
+                if viewModel.isFaceSwapPreviewPresented {
+                    FaceSwapPreviewView(viewModel: viewModel)
+                        .zIndex(7)
+                }
             }
             .navigationTitle(viewModel.selectedFolder?.lastPathComponent ?? "Lumina Pro")
         }

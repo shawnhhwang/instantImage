@@ -54,7 +54,8 @@ public struct KeyboardCheatSheetView: View {
                 ShortcutItem(keys: ["\\"], description: "切換左右前後對比分割簾 (Before/After)"),
                 ShortcutItem(keys: ["J"], description: "開啟過曝(紅)與死黑(藍)剪裁警告"),
                 ShortcutItem(keys: ["⌘", "C"], description: "複製當前照片之調光參數"),
-                ShortcutItem(keys: ["⌘", "V"], description: "貼上並同步調光參數至選取照片")
+                ShortcutItem(keys: ["⌘", "V"], description: "貼上並同步調光參數至選取照片"),
+                ShortcutItem(keys: ["S"], description: "開啟 AI 換臉工作台 (FaceFusion API)")
             ]
         ),
         ShortcutSection(

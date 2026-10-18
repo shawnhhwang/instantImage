@@ -252,6 +252,17 @@ public struct ImageDetailView: View {
                     viewModel.applyAutoWhiteBalanceForSelected()
                 }
                 
+                // AI FaceSwap Button
+                LuminaPillButton(
+                    icon: "sparkles.rectangle.stack.fill",
+                    label: "AI 換臉",
+                    isSelected: viewModel.isFaceSwapSetupPresented || viewModel.isFaceSwapPreviewPresented,
+                    selectedColor: LuminaTheme.Colors.electricIndigo,
+                    shortcut: "S"
+                ) {
+                    viewModel.openFaceSwapSetup(for: selectedImage)
+                }
+                
                 // Before/After Split Curtain
                 if isAutoActive {
                     LuminaPillButton(
@@ -474,7 +485,12 @@ public struct DetailsSidebarView: View {
                     
                     Divider().background(LuminaTheme.Colors.borderSubtle)
                     
-                    // 3. Camera & Sensor Passport Card
+                    // 3. FaceFusion AI FaceSwap Section
+                    faceSwapSidebarSection
+                    
+                    Divider().background(LuminaTheme.Colors.borderSubtle)
+                    
+                    // 4. Camera & Sensor Passport Card
                     cameraPassportSection
                     
                     Divider().background(LuminaTheme.Colors.borderSubtle)
@@ -508,6 +524,107 @@ public struct DetailsSidebarView: View {
         }
         .onChange(of: key) { _, _ in
             viewModel.calculateHistogramForSelected()
+        }
+    }
+    
+    // MARK: - FaceSwap Sidebar Section
+    private var faceSwapSidebarSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                    Text("AI 換臉工作台")
+                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                        .tracking(0.6)
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                }
+                Spacer()
+                LuminaBadge("FaceFusion", color: LuminaTheme.Colors.electricIndigo)
+            }
+            
+            // Current Source Face Preview
+            HStack(spacing: 10) {
+                if let source = viewModel.selectedSourceFace, let nsImg = NSImage(contentsOf: source.url) {
+                    Image(nsImage: nsImg)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: 36, height: 36)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.4), lineWidth: 1))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(source.name)
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.textPrimary)
+                            .lineLimit(1)
+                        Text("融合: \(Int(viewModel.faceEnhancerBlend))%")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    }
+                } else {
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.black.opacity(0.04))
+                        .frame(width: 36, height: 36)
+                        .overlay(Image(systemName: "person.crop.circle").foregroundColor(.gray))
+                    
+                    Text("未選取來源人臉")
+                        .font(.system(size: 10))
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    viewModel.openFaceSwapSetup(for: selectedImage)
+                }) {
+                    Text("更換臉孔")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                        .padding(.vertical, 3)
+                        .padding(.horizontal, 7)
+                        .background(Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.12)))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            .padding(8)
+            .background(
+                RoundedRectangle(cornerRadius: 8)
+                    .fill(Color.black.opacity(0.025))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.black.opacity(0.05), lineWidth: 1))
+            )
+            
+            // Submit FaceSwap Button
+            Button(action: {
+                if viewModel.selectedSourceFace == nil {
+                    viewModel.openFaceSwapSetup(for: selectedImage)
+                } else {
+                    viewModel.faceSwapTargetImage = selectedImage
+                    viewModel.startFaceSwap()
+                }
+            }) {
+                HStack(spacing: 6) {
+                    if viewModel.isFaceSwapProcessing {
+                        ProgressView().scaleEffect(0.6).colorInvert()
+                        Text("API 運算中...")
+                    } else {
+                        Image(systemName: "sparkles")
+                        Text("送出 API 換臉 (S)")
+                    }
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 7)
+                .background(
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(viewModel.isFaceSwapProcessing ? Color.gray : LuminaTheme.Colors.electricIndigo)
+                )
+                .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.25), radius: 5, x: 0, y: 2)
+            }
+            .buttonStyle(PlainButtonStyle())
+            .disabled(viewModel.isFaceSwapProcessing)
         }
     }
     

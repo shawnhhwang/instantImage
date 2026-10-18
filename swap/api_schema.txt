@@ -1,0 +1,1679 @@
+Client.predict() Usage Info
+---------------------------
+Named API endpoints: 232
+
+ - predict(processors, api_name="/update_processors") -> processors
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] 
+
+ - predict(age_modifier_model, api_name="/update_age_modifier_model") -> age_modifier_model
+    Parameters:
+     - [Dropdown] age_modifier_model: Literal['styleganex_age'] (not required, defaults to:   styleganex_age)  
+    Returns:
+     - [Dropdown] age_modifier_model: Literal['styleganex_age'] 
+
+ - predict(age_modifier_direction, api_name="/update_age_modifier_direction") -> 
+    Parameters:
+     - [Slider] age_modifier_direction: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update") -> (age_modifier_model, age_modifier_direction)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] age_modifier_model: Literal['styleganex_age'] 
+     - [Slider] age_modifier_direction: float (numeric value between -100 and 100) 
+
+ - predict(background_remover_model, api_name="/update_background_remover_model") -> background_remover_model
+    Parameters:
+     - [Dropdown] background_remover_model: Literal['ben_2', 'birefnet_general', 'birefnet_portrait', 'isnet_general', 'modnet', 'ormbg', 'rmbg_1.4', 'rmbg_2.0', 'silueta', 'u2net_cloth', 'u2net_general', 'u2net_human', 'u2netp'] (not required, defaults to:   rmbg_2.0)  
+    Returns:
+     - [Dropdown] background_remover_model: Literal['ben_2', 'birefnet_general', 'birefnet_portrait', 'isnet_general', 'modnet', 'ormbg', 'rmbg_1.4', 'rmbg_2.0', 'silueta', 'u2net_cloth', 'u2net_general', 'u2net_human', 'u2netp'] 
+
+ - predict(red, green, blue, alpha, api_name="/update_background_remover_color") -> 
+    Parameters:
+     - [Number] red: float (not required, defaults to:   0)  
+     - [Number] green: float (not required, defaults to:   0)  
+     - [Number] blue: float (not required, defaults to:   0)  
+     - [Number] alpha: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(red, green, blue, alpha, api_name="/update_background_remover_color_1") -> 
+    Parameters:
+     - [Number] red: float (not required, defaults to:   0)  
+     - [Number] green: float (not required, defaults to:   0)  
+     - [Number] blue: float (not required, defaults to:   0)  
+     - [Number] alpha: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(red, green, blue, alpha, api_name="/update_background_remover_color_2") -> 
+    Parameters:
+     - [Number] red: float (not required, defaults to:   0)  
+     - [Number] green: float (not required, defaults to:   0)  
+     - [Number] blue: float (not required, defaults to:   0)  
+     - [Number] alpha: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(red, green, blue, alpha, api_name="/update_background_remover_color_3") -> 
+    Parameters:
+     - [Number] red: float (not required, defaults to:   0)  
+     - [Number] green: float (not required, defaults to:   0)  
+     - [Number] blue: float (not required, defaults to:   0)  
+     - [Number] alpha: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_1") -> background_remover_model
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] background_remover_model: Literal['ben_2', 'birefnet_general', 'birefnet_portrait', 'isnet_general', 'modnet', 'ormbg', 'rmbg_1.4', 'rmbg_2.0', 'silueta', 'u2net_cloth', 'u2net_general', 'u2net_human', 'u2netp'] 
+
+ - predict(deep_swapper_model, api_name="/update_deep_swapper_model") -> (deep_swapper_model, deep_swapper_morph)
+    Parameters:
+     - [Dropdown] deep_swapper_model: Literal['druuzil/adam_levine_320', 'druuzil/adrianne_palicki_384', 'druuzil/agnetha_falskog_224', 'druuzil/alan_ritchson_320', 'druuzil/alicia_vikander_320', 'druuzil/amber_midthunder_320', 'druuzil/andras_arato_384', 'druuzil/andrew_tate_320', 'druuzil/angelina_jolie_384', 'druuzil/anne_hathaway_320', 'druuzil/anya_chalotra_320', 'druuzil/arnold_schwarzenegger_320', 'druuzil/benjamin_affleck_320', 'druuzil/benjamin_stiller_384', 'druuzil/bradley_pitt_224', 'druuzil/brie_larson_384', 'druuzil/bruce_campbell_384', 'druuzil/bryan_cranston_320', 'druuzil/catherine_blanchett_352', 'druuzil/christian_bale_320', 'druuzil/christopher_hemsworth_320', 'druuzil/christoph_waltz_384', 'druuzil/cillian_murphy_320', 'druuzil/cobie_smulders_256', 'druuzil/dwayne_johnson_384', 'druuzil/edward_norton_320', 'druuzil/elisabeth_shue_320', 'druuzil/elizabeth_olsen_384', 'druuzil/elon_musk_320', 'druuzil/emily_blunt_320', 'druuzil/emma_stone_384', 'druuzil/emma_watson_320', 'druuzil/erin_moriarty_384', 'druuzil/eva_green_320', 'druuzil/ewan_mcgregor_320', 'druuzil/florence_pugh_320', 'druuzil/freya_allan_320', 'druuzil/gary_cole_224', 'druuzil/gigi_hadid_224', 'druuzil/harrison_ford_384', 'druuzil/hayden_christensen_320', 'druuzil/heath_ledger_320', 'druuzil/henry_cavill_448', 'druuzil/hugh_jackman_384', 'druuzil/idris_elba_320', 'druuzil/jack_nicholson_320', 'druuzil/james_carrey_384', 'druuzil/james_mcavoy_320', 'druuzil/james_varney_320', 'druuzil/jason_momoa_320', 'druuzil/jason_statham_320', 'druuzil/jennifer_connelly_384', 'druuzil/jimmy_donaldson_320', 'druuzil/jordan_peterson_384', 'druuzil/karl_urban_224', 'druuzil/kate_beckinsale_384', 'druuzil/laurence_fishburne_384', 'druuzil/lili_reinhart_320', 'druuzil/luke_evans_384', 'druuzil/mads_mikkelsen_384', 'druuzil/mary_winstead_320', 'druuzil/margaret_qualley_384', 'druuzil/melina_juergens_320', 'druuzil/michael_fassbender_320', 'druuzil/michael_fox_320', 'druuzil/millie_bobby_brown_320', 'druuzil/morgan_freeman_320', 'druuzil/patrick_stewart_224', 'druuzil/rachel_weisz_384', 'druuzil/rebecca_ferguson_320', 'druuzil/scarlett_johansson_320', 'druuzil/shannen_doherty_384', 'druuzil/seth_macfarlane_384', 'druuzil/thomas_cruise_320', 'druuzil/thomas_hanks_384', 'druuzil/william_murray_384', 'druuzil/zoe_saldana_384', 'edel/emma_roberts_224', 'edel/ivanka_trump_224', 'edel/lize_dzjabrailova_224', 'edel/sidney_sweeney_224', 'edel/winona_ryder_224', 'iperov/alexandra_daddario_224', 'iperov/alexei_navalny_224', 'iperov/amber_heard_224', 'iperov/dilraba_dilmurat_224', 'iperov/elon_musk_224', 'iperov/emilia_clarke_224', 'iperov/emma_watson_224', 'iperov/erin_moriarty_224', 'iperov/jackie_chan_224', 'iperov/james_carrey_224', 'iperov/jason_statham_320', 'iperov/keanu_reeves_320', 'iperov/margot_robbie_224', 'iperov/natalie_dormer_224', 'iperov/nicolas_coppola_224', 'iperov/robert_downey_224', 'iperov/rowan_atkinson_224', 'iperov/ryan_reynolds_224', 'iperov/scarlett_johansson_224', 'iperov/sylvester_stallone_224', 'iperov/thomas_cruise_224', 'iperov/thomas_holland_224', 'iperov/vin_diesel_224', 'iperov/vladimir_putin_224', 'jen/angelica_trae_288', 'jen/ella_freya_224', 'jen/emma_myers_320', 'jen/evie_pickerill_224', 'jen/kang_hyewon_320', 'jen/maddie_mead_224', 'jen/nicole_turnbull_288', 'mats/alica_schmidt_320', 'mats/ashley_alexiss_224', 'mats/billie_eilish_224', 'mats/brie_larson_224', 'mats/cara_delevingne_224', 'mats/carolin_kebekus_224', 'mats/chelsea_clinton_224', 'mats/claire_boucher_224', 'mats/corinna_kopf_224', 'mats/florence_pugh_224', 'mats/hillary_clinton_224', 'mats/jenna_fischer_224', 'mats/kim_jisoo_320', 'mats/mica_suarez_320', 'mats/shailene_woodley_224', 'mats/shraddha_kapoor_320', 'mats/yu_jimin_352', 'rumateus/alison_brie_224', 'rumateus/amber_heard_224', 'rumateus/angelina_jolie_224', 'rumateus/aubrey_plaza_224', 'rumateus/bridget_regan_224', 'rumateus/cobie_smulders_224', 'rumateus/deborah_woll_224', 'rumateus/dua_lipa_224', 'rumateus/emma_stone_224', 'rumateus/hailee_steinfeld_224', 'rumateus/hilary_duff_224', 'rumateus/jessica_alba_224', 'rumateus/jessica_biel_224', 'rumateus/john_cena_224', 'rumateus/kim_kardashian_224', 'rumateus/kristen_bell_224', 'rumateus/lucy_liu_224', 'rumateus/margot_robbie_224', 'rumateus/megan_fox_224', 'rumateus/meghan_markle_224', 'rumateus/millie_bobby_brown_224', 'rumateus/natalie_portman_224', 'rumateus/nicki_minaj_224', 'rumateus/olivia_wilde_224', 'rumateus/shay_mitchell_224', 'rumateus/sophie_turner_224', 'rumateus/taylor_swift_224'] (not required, defaults to:   iperov/elon_musk_224)  
+    Returns:
+     - [Dropdown] deep_swapper_model: Literal['druuzil/adam_levine_320', 'druuzil/adrianne_palicki_384', 'druuzil/agnetha_falskog_224', 'druuzil/alan_ritchson_320', 'druuzil/alicia_vikander_320', 'druuzil/amber_midthunder_320', 'druuzil/andras_arato_384', 'druuzil/andrew_tate_320', 'druuzil/angelina_jolie_384', 'druuzil/anne_hathaway_320', 'druuzil/anya_chalotra_320', 'druuzil/arnold_schwarzenegger_320', 'druuzil/benjamin_affleck_320', 'druuzil/benjamin_stiller_384', 'druuzil/bradley_pitt_224', 'druuzil/brie_larson_384', 'druuzil/bruce_campbell_384', 'druuzil/bryan_cranston_320', 'druuzil/catherine_blanchett_352', 'druuzil/christian_bale_320', 'druuzil/christopher_hemsworth_320', 'druuzil/christoph_waltz_384', 'druuzil/cillian_murphy_320', 'druuzil/cobie_smulders_256', 'druuzil/dwayne_johnson_384', 'druuzil/edward_norton_320', 'druuzil/elisabeth_shue_320', 'druuzil/elizabeth_olsen_384', 'druuzil/elon_musk_320', 'druuzil/emily_blunt_320', 'druuzil/emma_stone_384', 'druuzil/emma_watson_320', 'druuzil/erin_moriarty_384', 'druuzil/eva_green_320', 'druuzil/ewan_mcgregor_320', 'druuzil/florence_pugh_320', 'druuzil/freya_allan_320', 'druuzil/gary_cole_224', 'druuzil/gigi_hadid_224', 'druuzil/harrison_ford_384', 'druuzil/hayden_christensen_320', 'druuzil/heath_ledger_320', 'druuzil/henry_cavill_448', 'druuzil/hugh_jackman_384', 'druuzil/idris_elba_320', 'druuzil/jack_nicholson_320', 'druuzil/james_carrey_384', 'druuzil/james_mcavoy_320', 'druuzil/james_varney_320', 'druuzil/jason_momoa_320', 'druuzil/jason_statham_320', 'druuzil/jennifer_connelly_384', 'druuzil/jimmy_donaldson_320', 'druuzil/jordan_peterson_384', 'druuzil/karl_urban_224', 'druuzil/kate_beckinsale_384', 'druuzil/laurence_fishburne_384', 'druuzil/lili_reinhart_320', 'druuzil/luke_evans_384', 'druuzil/mads_mikkelsen_384', 'druuzil/mary_winstead_320', 'druuzil/margaret_qualley_384', 'druuzil/melina_juergens_320', 'druuzil/michael_fassbender_320', 'druuzil/michael_fox_320', 'druuzil/millie_bobby_brown_320', 'druuzil/morgan_freeman_320', 'druuzil/patrick_stewart_224', 'druuzil/rachel_weisz_384', 'druuzil/rebecca_ferguson_320', 'druuzil/scarlett_johansson_320', 'druuzil/shannen_doherty_384', 'druuzil/seth_macfarlane_384', 'druuzil/thomas_cruise_320', 'druuzil/thomas_hanks_384', 'druuzil/william_murray_384', 'druuzil/zoe_saldana_384', 'edel/emma_roberts_224', 'edel/ivanka_trump_224', 'edel/lize_dzjabrailova_224', 'edel/sidney_sweeney_224', 'edel/winona_ryder_224', 'iperov/alexandra_daddario_224', 'iperov/alexei_navalny_224', 'iperov/amber_heard_224', 'iperov/dilraba_dilmurat_224', 'iperov/elon_musk_224', 'iperov/emilia_clarke_224', 'iperov/emma_watson_224', 'iperov/erin_moriarty_224', 'iperov/jackie_chan_224', 'iperov/james_carrey_224', 'iperov/jason_statham_320', 'iperov/keanu_reeves_320', 'iperov/margot_robbie_224', 'iperov/natalie_dormer_224', 'iperov/nicolas_coppola_224', 'iperov/robert_downey_224', 'iperov/rowan_atkinson_224', 'iperov/ryan_reynolds_224', 'iperov/scarlett_johansson_224', 'iperov/sylvester_stallone_224', 'iperov/thomas_cruise_224', 'iperov/thomas_holland_224', 'iperov/vin_diesel_224', 'iperov/vladimir_putin_224', 'jen/angelica_trae_288', 'jen/ella_freya_224', 'jen/emma_myers_320', 'jen/evie_pickerill_224', 'jen/kang_hyewon_320', 'jen/maddie_mead_224', 'jen/nicole_turnbull_288', 'mats/alica_schmidt_320', 'mats/ashley_alexiss_224', 'mats/billie_eilish_224', 'mats/brie_larson_224', 'mats/cara_delevingne_224', 'mats/carolin_kebekus_224', 'mats/chelsea_clinton_224', 'mats/claire_boucher_224', 'mats/corinna_kopf_224', 'mats/florence_pugh_224', 'mats/hillary_clinton_224', 'mats/jenna_fischer_224', 'mats/kim_jisoo_320', 'mats/mica_suarez_320', 'mats/shailene_woodley_224', 'mats/shraddha_kapoor_320', 'mats/yu_jimin_352', 'rumateus/alison_brie_224', 'rumateus/amber_heard_224', 'rumateus/angelina_jolie_224', 'rumateus/aubrey_plaza_224', 'rumateus/bridget_regan_224', 'rumateus/cobie_smulders_224', 'rumateus/deborah_woll_224', 'rumateus/dua_lipa_224', 'rumateus/emma_stone_224', 'rumateus/hailee_steinfeld_224', 'rumateus/hilary_duff_224', 'rumateus/jessica_alba_224', 'rumateus/jessica_biel_224', 'rumateus/john_cena_224', 'rumateus/kim_kardashian_224', 'rumateus/kristen_bell_224', 'rumateus/lucy_liu_224', 'rumateus/margot_robbie_224', 'rumateus/megan_fox_224', 'rumateus/meghan_markle_224', 'rumateus/millie_bobby_brown_224', 'rumateus/natalie_portman_224', 'rumateus/nicki_minaj_224', 'rumateus/olivia_wilde_224', 'rumateus/shay_mitchell_224', 'rumateus/sophie_turner_224', 'rumateus/taylor_swift_224'] 
+     - [Slider] deep_swapper_morph: float (numeric value between 0 and 100) 
+
+ - predict(deep_swapper_morph, api_name="/update_deep_swapper_morph") -> 
+    Parameters:
+     - [Slider] deep_swapper_morph: float (not required, defaults to:   100)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_2") -> (deep_swapper_model, deep_swapper_morph)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] deep_swapper_model: Literal['druuzil/adam_levine_320', 'druuzil/adrianne_palicki_384', 'druuzil/agnetha_falskog_224', 'druuzil/alan_ritchson_320', 'druuzil/alicia_vikander_320', 'druuzil/amber_midthunder_320', 'druuzil/andras_arato_384', 'druuzil/andrew_tate_320', 'druuzil/angelina_jolie_384', 'druuzil/anne_hathaway_320', 'druuzil/anya_chalotra_320', 'druuzil/arnold_schwarzenegger_320', 'druuzil/benjamin_affleck_320', 'druuzil/benjamin_stiller_384', 'druuzil/bradley_pitt_224', 'druuzil/brie_larson_384', 'druuzil/bruce_campbell_384', 'druuzil/bryan_cranston_320', 'druuzil/catherine_blanchett_352', 'druuzil/christian_bale_320', 'druuzil/christopher_hemsworth_320', 'druuzil/christoph_waltz_384', 'druuzil/cillian_murphy_320', 'druuzil/cobie_smulders_256', 'druuzil/dwayne_johnson_384', 'druuzil/edward_norton_320', 'druuzil/elisabeth_shue_320', 'druuzil/elizabeth_olsen_384', 'druuzil/elon_musk_320', 'druuzil/emily_blunt_320', 'druuzil/emma_stone_384', 'druuzil/emma_watson_320', 'druuzil/erin_moriarty_384', 'druuzil/eva_green_320', 'druuzil/ewan_mcgregor_320', 'druuzil/florence_pugh_320', 'druuzil/freya_allan_320', 'druuzil/gary_cole_224', 'druuzil/gigi_hadid_224', 'druuzil/harrison_ford_384', 'druuzil/hayden_christensen_320', 'druuzil/heath_ledger_320', 'druuzil/henry_cavill_448', 'druuzil/hugh_jackman_384', 'druuzil/idris_elba_320', 'druuzil/jack_nicholson_320', 'druuzil/james_carrey_384', 'druuzil/james_mcavoy_320', 'druuzil/james_varney_320', 'druuzil/jason_momoa_320', 'druuzil/jason_statham_320', 'druuzil/jennifer_connelly_384', 'druuzil/jimmy_donaldson_320', 'druuzil/jordan_peterson_384', 'druuzil/karl_urban_224', 'druuzil/kate_beckinsale_384', 'druuzil/laurence_fishburne_384', 'druuzil/lili_reinhart_320', 'druuzil/luke_evans_384', 'druuzil/mads_mikkelsen_384', 'druuzil/mary_winstead_320', 'druuzil/margaret_qualley_384', 'druuzil/melina_juergens_320', 'druuzil/michael_fassbender_320', 'druuzil/michael_fox_320', 'druuzil/millie_bobby_brown_320', 'druuzil/morgan_freeman_320', 'druuzil/patrick_stewart_224', 'druuzil/rachel_weisz_384', 'druuzil/rebecca_ferguson_320', 'druuzil/scarlett_johansson_320', 'druuzil/shannen_doherty_384', 'druuzil/seth_macfarlane_384', 'druuzil/thomas_cruise_320', 'druuzil/thomas_hanks_384', 'druuzil/william_murray_384', 'druuzil/zoe_saldana_384', 'edel/emma_roberts_224', 'edel/ivanka_trump_224', 'edel/lize_dzjabrailova_224', 'edel/sidney_sweeney_224', 'edel/winona_ryder_224', 'iperov/alexandra_daddario_224', 'iperov/alexei_navalny_224', 'iperov/amber_heard_224', 'iperov/dilraba_dilmurat_224', 'iperov/elon_musk_224', 'iperov/emilia_clarke_224', 'iperov/emma_watson_224', 'iperov/erin_moriarty_224', 'iperov/jackie_chan_224', 'iperov/james_carrey_224', 'iperov/jason_statham_320', 'iperov/keanu_reeves_320', 'iperov/margot_robbie_224', 'iperov/natalie_dormer_224', 'iperov/nicolas_coppola_224', 'iperov/robert_downey_224', 'iperov/rowan_atkinson_224', 'iperov/ryan_reynolds_224', 'iperov/scarlett_johansson_224', 'iperov/sylvester_stallone_224', 'iperov/thomas_cruise_224', 'iperov/thomas_holland_224', 'iperov/vin_diesel_224', 'iperov/vladimir_putin_224', 'jen/angelica_trae_288', 'jen/ella_freya_224', 'jen/emma_myers_320', 'jen/evie_pickerill_224', 'jen/kang_hyewon_320', 'jen/maddie_mead_224', 'jen/nicole_turnbull_288', 'mats/alica_schmidt_320', 'mats/ashley_alexiss_224', 'mats/billie_eilish_224', 'mats/brie_larson_224', 'mats/cara_delevingne_224', 'mats/carolin_kebekus_224', 'mats/chelsea_clinton_224', 'mats/claire_boucher_224', 'mats/corinna_kopf_224', 'mats/florence_pugh_224', 'mats/hillary_clinton_224', 'mats/jenna_fischer_224', 'mats/kim_jisoo_320', 'mats/mica_suarez_320', 'mats/shailene_woodley_224', 'mats/shraddha_kapoor_320', 'mats/yu_jimin_352', 'rumateus/alison_brie_224', 'rumateus/amber_heard_224', 'rumateus/angelina_jolie_224', 'rumateus/aubrey_plaza_224', 'rumateus/bridget_regan_224', 'rumateus/cobie_smulders_224', 'rumateus/deborah_woll_224', 'rumateus/dua_lipa_224', 'rumateus/emma_stone_224', 'rumateus/hailee_steinfeld_224', 'rumateus/hilary_duff_224', 'rumateus/jessica_alba_224', 'rumateus/jessica_biel_224', 'rumateus/john_cena_224', 'rumateus/kim_kardashian_224', 'rumateus/kristen_bell_224', 'rumateus/lucy_liu_224', 'rumateus/margot_robbie_224', 'rumateus/megan_fox_224', 'rumateus/meghan_markle_224', 'rumateus/millie_bobby_brown_224', 'rumateus/natalie_portman_224', 'rumateus/nicki_minaj_224', 'rumateus/olivia_wilde_224', 'rumateus/shay_mitchell_224', 'rumateus/sophie_turner_224', 'rumateus/taylor_swift_224'] 
+     - [Slider] deep_swapper_morph: float (numeric value between 0 and 100) 
+
+ - predict(expression_restorer_model, api_name="/update_expression_restorer_model") -> expression_restorer_model
+    Parameters:
+     - [Dropdown] expression_restorer_model: Literal['live_portrait'] (not required, defaults to:   live_portrait)  
+    Returns:
+     - [Dropdown] expression_restorer_model: Literal['live_portrait'] 
+
+ - predict(expression_restorer_factor, api_name="/update_expression_restorer_factor") -> 
+    Parameters:
+     - [Slider] expression_restorer_factor: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(expression_restorer_areas, api_name="/update_expression_restorer_areas") -> expression_restorer_areas
+    Parameters:
+     - [Checkboxgroup] expression_restorer_areas: list[Literal['upper-face', 'lower-face']] (not required, defaults to:   ['upper-face', 'lower-face'])  
+    Returns:
+     - [Checkboxgroup] expression_restorer_areas: list[Literal['upper-face', 'lower-face']] 
+
+ - predict(processors, api_name="/remote_update_3") -> (expression_restorer_model, expression_restorer_factor, expression_restorer_areas)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] expression_restorer_model: Literal['live_portrait'] 
+     - [Slider] expression_restorer_factor: float (numeric value between 0 and 100) 
+     - [Checkboxgroup] expression_restorer_areas: list[Literal['upper-face', 'lower-face']] 
+
+ - predict(face_debugger_items, api_name="/update_face_debugger_items") -> 
+    Parameters:
+     - [Checkboxgroup] face_debugger_items: list[Literal['bounding-box', 'face-landmark-5', 'face-landmark-5/68', 'face-landmark-68', 'face-landmark-68/5', 'face-mask']] (not required, defaults to:   ['face-landmark-5/68', 'face-mask'])  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_4") -> face_debugger_items
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Checkboxgroup] face_debugger_items: list[Literal['bounding-box', 'face-landmark-5', 'face-landmark-5/68', 'face-landmark-68', 'face-landmark-68/5', 'face-mask']] 
+
+ - predict(face_editor_model, api_name="/update_face_editor_model") -> face_editor_model
+    Parameters:
+     - [Dropdown] face_editor_model: Literal['live_portrait'] (not required, defaults to:   live_portrait)  
+    Returns:
+     - [Dropdown] face_editor_model: Literal['live_portrait'] 
+
+ - predict(face_editor_eyebrow_direction, api_name="/update_face_editor_eyebrow_direction") -> 
+    Parameters:
+     - [Slider] face_editor_eyebrow_direction: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_eye_gaze_horizontal, api_name="/update_face_editor_eye_gaze_horizontal") -> 
+    Parameters:
+     - [Slider] face_editor_eye_gaze_horizontal: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_eye_gaze_vertical, api_name="/update_face_editor_eye_gaze_vertical") -> 
+    Parameters:
+     - [Slider] face_editor_eye_gaze_vertical: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_eye_open_ratio, api_name="/update_face_editor_eye_open_ratio") -> 
+    Parameters:
+     - [Slider] face_editor_eye_open_ratio: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_lip_open_ratio, api_name="/update_face_editor_lip_open_ratio") -> 
+    Parameters:
+     - [Slider] face_editor_lip_open_ratio: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_grim, api_name="/update_face_editor_mouth_grim") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_grim: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_pout, api_name="/update_face_editor_mouth_pout") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_pout: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_purse, api_name="/update_face_editor_mouth_purse") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_purse: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_smile, api_name="/update_face_editor_mouth_smile") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_smile: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_position_horizontal, api_name="/update_face_editor_mouth_position_horizontal") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_position_horizontal: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_mouth_position_vertical, api_name="/update_face_editor_mouth_position_vertical") -> 
+    Parameters:
+     - [Slider] face_editor_mouth_position_vertical: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_head_pitch, api_name="/update_face_editor_head_pitch") -> 
+    Parameters:
+     - [Slider] face_editor_head_pitch: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_head_yaw, api_name="/update_face_editor_head_yaw") -> 
+    Parameters:
+     - [Slider] face_editor_head_yaw: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(face_editor_head_roll, api_name="/update_face_editor_head_roll") -> 
+    Parameters:
+     - [Slider] face_editor_head_roll: float (not required, defaults to:   0.0)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_5") -> (face_editor_model, face_editor_eyebrow_direction, face_editor_eye_gaze_horizontal, face_editor_eye_gaze_vertical, face_editor_eye_open_ratio, face_editor_lip_open_ratio, face_editor_mouth_grim, face_editor_mouth_pout, face_editor_mouth_purse, face_editor_mouth_smile, face_editor_mouth_position_horizontal, face_editor_mouth_position_vertical, face_editor_head_pitch, face_editor_head_yaw, face_editor_head_roll)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] face_editor_model: Literal['live_portrait'] 
+     - [Slider] face_editor_eyebrow_direction: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_eye_gaze_horizontal: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_eye_gaze_vertical: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_eye_open_ratio: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_lip_open_ratio: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_grim: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_pout: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_purse: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_smile: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_position_horizontal: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_mouth_position_vertical: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_head_pitch: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_head_yaw: float (numeric value between -1.0 and 1.0) 
+     - [Slider] face_editor_head_roll: float (numeric value between -1.0 and 1.0) 
+
+ - predict(face_enhancer_model, api_name="/update_face_enhancer_model") -> (face_enhancer_model, face_enhancer_weight)
+    Parameters:
+     - [Dropdown] face_enhancer_model: Literal['codeformer', 'gfpgan_1.2', 'gfpgan_1.3', 'gfpgan_1.4', 'gpen_bfr_256', 'gpen_bfr_512', 'gpen_bfr_1024', 'gpen_bfr_2048', 'restoreformer_plus_plus'] (not required, defaults to:   gfpgan_1.4)  
+    Returns:
+     - [Dropdown] face_enhancer_model: Literal['codeformer', 'gfpgan_1.2', 'gfpgan_1.3', 'gfpgan_1.4', 'gpen_bfr_256', 'gpen_bfr_512', 'gpen_bfr_1024', 'gpen_bfr_2048', 'restoreformer_plus_plus'] 
+     - [Slider] face_enhancer_weight: float (numeric value between 0.0 and 1.0) 
+
+ - predict(face_enhancer_blend, api_name="/update_face_enhancer_blend") -> 
+    Parameters:
+     - [Slider] face_enhancer_blend: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(face_enhancer_weight, api_name="/update_face_enhancer_weight") -> 
+    Parameters:
+     - [Slider] face_enhancer_weight: float (not required, defaults to:   0.5)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_6") -> (face_enhancer_model, face_enhancer_blend, face_enhancer_weight)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] face_enhancer_model: Literal['codeformer', 'gfpgan_1.2', 'gfpgan_1.3', 'gfpgan_1.4', 'gpen_bfr_256', 'gpen_bfr_512', 'gpen_bfr_1024', 'gpen_bfr_2048', 'restoreformer_plus_plus'] 
+     - [Slider] face_enhancer_blend: float (numeric value between 0 and 100) 
+     - [Slider] face_enhancer_weight: float (numeric value between 0.0 and 1.0) 
+
+ - predict(face_swapper_model, api_name="/update_face_swapper_model") -> (face_swapper_model, face_swapper_pixel_boost, face_swapper_weight)
+    Parameters:
+     - [Dropdown] face_swapper_model: Literal['blendswap_256', 'ghost_1_256', 'ghost_2_256', 'ghost_3_256', 'hififace_unofficial_256', 'hyperswap_1a_256', 'hyperswap_1b_256', 'hyperswap_1c_256', 'inswapper_128', 'inswapper_128_fp16', 'simswap_256', 'simswap_unofficial_512', 'uniface_256'] (not required, defaults to:   hyperswap_1a_256)  
+    Returns:
+     - [Dropdown] face_swapper_model: Literal['blendswap_256', 'ghost_1_256', 'ghost_2_256', 'ghost_3_256', 'hififace_unofficial_256', 'hyperswap_1a_256', 'hyperswap_1b_256', 'hyperswap_1c_256', 'inswapper_128', 'inswapper_128_fp16', 'simswap_256', 'simswap_unofficial_512', 'uniface_256'] 
+     - [Dropdown] face_swapper_pixel_boost: Literal['256x256', '512x512', '768x768', '1024x1024'] 
+     - [Slider] face_swapper_weight: float (numeric value between 0.0 and 1.0) 
+
+ - predict(face_swapper_pixel_boost, api_name="/update_face_swapper_pixel_boost") -> 
+    Parameters:
+     - [Dropdown] face_swapper_pixel_boost: Literal['256x256', '512x512', '768x768', '1024x1024'] (not required, defaults to:   256x256)  
+    Returns:
+     - None
+
+ - predict(face_swapper_weight, api_name="/update_face_swapper_weight") -> 
+    Parameters:
+     - [Slider] face_swapper_weight: float (not required, defaults to:   0.5)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_7") -> (face_swapper_model, face_swapper_pixel_boost, face_swapper_weight)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] face_swapper_model: Literal['blendswap_256', 'ghost_1_256', 'ghost_2_256', 'ghost_3_256', 'hififace_unofficial_256', 'hyperswap_1a_256', 'hyperswap_1b_256', 'hyperswap_1c_256', 'inswapper_128', 'inswapper_128_fp16', 'simswap_256', 'simswap_unofficial_512', 'uniface_256'] 
+     - [Dropdown] face_swapper_pixel_boost: Literal['256x256', '512x512', '768x768', '1024x1024'] 
+     - [Slider] face_swapper_weight: float (numeric value between 0.0 and 1.0) 
+
+ - predict(frame_colorizer_model, api_name="/update_frame_colorizer_model") -> frame_colorizer_model
+    Parameters:
+     - [Dropdown] frame_colorizer_model: Literal['ddcolor', 'ddcolor_artistic', 'deoldify', 'deoldify_artistic', 'deoldify_stable'] (not required, defaults to:   ddcolor)  
+    Returns:
+     - [Dropdown] frame_colorizer_model: Literal['ddcolor', 'ddcolor_artistic', 'deoldify', 'deoldify_artistic', 'deoldify_stable'] 
+
+ - predict(frame_colorizer_size, api_name="/update_frame_colorizer_size") -> 
+    Parameters:
+     - [Dropdown] frame_colorizer_size: Literal['192x192', '256x256', '384x384', '512x512'] (not required, defaults to:   256x256)  
+    Returns:
+     - None
+
+ - predict(frame_colorizer_blend, api_name="/update_frame_colorizer_blend") -> 
+    Parameters:
+     - [Slider] frame_colorizer_blend: float (not required, defaults to:   100)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_8") -> (frame_colorizer_model, frame_colorizer_blend, frame_colorizer_size)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] frame_colorizer_model: Literal['ddcolor', 'ddcolor_artistic', 'deoldify', 'deoldify_artistic', 'deoldify_stable'] 
+     - [Slider] frame_colorizer_blend: float (numeric value between 0 and 100) 
+     - [Dropdown] frame_colorizer_size: Literal['192x192', '256x256', '384x384', '512x512'] 
+
+ - predict(frame_enhancer_model, api_name="/update_frame_enhancer_model") -> frame_enhancer_model
+    Parameters:
+     - [Dropdown] frame_enhancer_model: Literal['clear_reality_x4', 'face_dat_x4', 'lsdir_x4', 'nomos8k_sc_x4', 'real_esrgan_x2', 'real_esrgan_x2_fp16', 'real_esrgan_x4', 'real_esrgan_x4_fp16', 'real_esrgan_x8', 'real_esrgan_x8_fp16', 'real_hatgan_x4', 'real_web_photo_x4', 'realistic_rescaler_x4', 'remacri_x4', 'siax_x4', 'span_kendata_x4', 'swin2_sr_x4', 'tghq_face_x8', 'ultra_sharp_x4', 'ultra_sharp_2_x4'] (not required, defaults to:   span_kendata_x4)  
+    Returns:
+     - [Dropdown] frame_enhancer_model: Literal['clear_reality_x4', 'face_dat_x4', 'lsdir_x4', 'nomos8k_sc_x4', 'real_esrgan_x2', 'real_esrgan_x2_fp16', 'real_esrgan_x4', 'real_esrgan_x4_fp16', 'real_esrgan_x8', 'real_esrgan_x8_fp16', 'real_hatgan_x4', 'real_web_photo_x4', 'realistic_rescaler_x4', 'remacri_x4', 'siax_x4', 'span_kendata_x4', 'swin2_sr_x4', 'tghq_face_x8', 'ultra_sharp_x4', 'ultra_sharp_2_x4'] 
+
+ - predict(frame_enhancer_blend, api_name="/update_frame_enhancer_blend") -> 
+    Parameters:
+     - [Slider] frame_enhancer_blend: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_9") -> (frame_enhancer_model, frame_enhancer_blend)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] frame_enhancer_model: Literal['clear_reality_x4', 'face_dat_x4', 'lsdir_x4', 'nomos8k_sc_x4', 'real_esrgan_x2', 'real_esrgan_x2_fp16', 'real_esrgan_x4', 'real_esrgan_x4_fp16', 'real_esrgan_x8', 'real_esrgan_x8_fp16', 'real_hatgan_x4', 'real_web_photo_x4', 'realistic_rescaler_x4', 'remacri_x4', 'siax_x4', 'span_kendata_x4', 'swin2_sr_x4', 'tghq_face_x8', 'ultra_sharp_x4', 'ultra_sharp_2_x4'] 
+     - [Slider] frame_enhancer_blend: float (numeric value between 0 and 100) 
+
+ - predict(lip_syncer_model, api_name="/update_lip_syncer_model") -> lip_syncer_model
+    Parameters:
+     - [Dropdown] lip_syncer_model: Literal['edtalk_256', 'wav2lip_96', 'wav2lip_gan_96'] (not required, defaults to:   wav2lip_gan_96)  
+    Returns:
+     - [Dropdown] lip_syncer_model: Literal['edtalk_256', 'wav2lip_96', 'wav2lip_gan_96'] 
+
+ - predict(lip_syncer_weight, api_name="/update_lip_syncer_weight") -> 
+    Parameters:
+     - [Slider] lip_syncer_weight: float (not required, defaults to:   0.5)  
+    Returns:
+     - None
+
+ - predict(processors, api_name="/remote_update_10") -> (lip_syncer_model, lip_syncer_weight)
+    Parameters:
+     - [Checkboxgroup] processors: list[Literal['face_swapper', 'age_modifier', 'background_remover', 'deep_swapper', 'expression_restorer', 'face_debugger', 'face_editor', 'face_enhancer', 'frame_colorizer', 'frame_enhancer', 'lip_syncer']] (not required, defaults to:   ['face_swapper'])  
+    Returns:
+     - [Dropdown] lip_syncer_model: Literal['edtalk_256', 'wav2lip_96', 'wav2lip_gan_96'] 
+     - [Slider] lip_syncer_weight: float (numeric value between 0.0 and 1.0) 
+
+ - predict(execution_providers, api_name="/update_execution_providers") -> execution_providers
+    Parameters:
+     - [Checkboxgroup] execution_providers: list[Literal['cuda', 'tensorrt', 'cpu']] (not required, defaults to:   ['cuda'])  
+    Returns:
+     - [Checkboxgroup] execution_providers: list[Literal['cuda', 'tensorrt', 'cpu']] 
+
+ - predict(execution_thread_count, api_name="/update_execution_thread_count") -> 
+    Parameters:
+     - [Slider] execution_thread_count: float (not required, defaults to:   8)  
+    Returns:
+     - None
+
+ - predict(download_providers, api_name="/update_download_providers") -> download_providers
+    Parameters:
+     - [Checkboxgroup] download_providers: list[Literal['github', 'huggingface']] (not required, defaults to:   ['github', 'huggingface'])  
+    Returns:
+     - [Checkboxgroup] download_providers: list[Literal['github', 'huggingface']] 
+
+ - predict(video_memory_strategy, api_name="/update_video_memory_strategy") -> 
+    Parameters:
+     - [Dropdown] video_memory_strategy: Literal['strict', 'moderate', 'tolerant'] (not required, defaults to:   strict)  
+    Returns:
+     - None
+
+ - predict(system_memory_limit, api_name="/update_system_memory_limit") -> 
+    Parameters:
+     - [Slider] system_memory_limit: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(temp_frame_format, api_name="/update_temp_frame_format") -> 
+    Parameters:
+     - [Dropdown] temp_frame_format: Literal['bmp', 'jpeg', 'png', 'tiff'] (not required, defaults to:   png)  
+    Returns:
+     - None
+
+ - predict(api_name="/remote_update_11") -> temp_frame_format
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] temp_frame_format: Literal['bmp', 'jpeg', 'png', 'tiff'] 
+
+ - predict(api_name="/remote_update_12") -> temp_frame_format
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] temp_frame_format: Literal['bmp', 'jpeg', 'png', 'tiff'] 
+
+ - predict(output_image_quality, api_name="/update_output_image_quality") -> 
+    Parameters:
+     - [Slider] output_image_quality: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(output_image_scale, api_name="/update_output_image_scale") -> 
+    Parameters:
+     - [Slider] output_image_scale: float (not required, defaults to:   1.0)  
+    Returns:
+     - None
+
+ - predict(output_audio_encoder, api_name="/update_output_audio_encoder") -> 
+    Parameters:
+     - [Dropdown] output_audio_encoder: Literal['flac', 'aac', 'libmp3lame', 'libopus', 'libvorbis', 'pcm_s16le', 'pcm_s32le'] (not required, defaults to:   flac)  
+    Returns:
+     - None
+
+ - predict(output_audio_quality, api_name="/update_output_audio_quality") -> 
+    Parameters:
+     - [Slider] output_audio_quality: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(output_audio_volume, api_name="/update_output_audio_volume") -> 
+    Parameters:
+     - [Slider] output_audio_volume: float (not required, defaults to:   100)  
+    Returns:
+     - None
+
+ - predict(output_video_encoder, api_name="/update_output_video_encoder") -> 
+    Parameters:
+     - [Dropdown] output_video_encoder: Literal['libx264', 'libx264rgb', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'h264_qsv', 'hevc_nvenc', 'hevc_qsv', 'rawvideo'] (not required, defaults to:   libx264)  
+    Returns:
+     - None
+
+ - predict(output_video_preset, api_name="/update_output_video_preset") -> 
+    Parameters:
+     - [Dropdown] output_video_preset: Literal['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'] (not required, defaults to:   veryfast)  
+    Returns:
+     - None
+
+ - predict(output_video_quality, api_name="/update_output_video_quality") -> 
+    Parameters:
+     - [Slider] output_video_quality: float (not required, defaults to:   80)  
+    Returns:
+     - None
+
+ - predict(output_video_scale, api_name="/update_output_video_scale") -> 
+    Parameters:
+     - [Slider] output_video_scale: float (not required, defaults to:   1.0)  
+    Returns:
+     - None
+
+ - predict(output_video_fps, api_name="/update_output_video_fps") -> 
+    Parameters:
+     - [Slider] output_video_fps: float (not required, defaults to:   1)  
+    Returns:
+     - None
+
+ - predict(api_name="/remote_update_13") -> (output_image_quality, output_image_scale, output_audio_encoder, output_audio_quality, output_audio_volume, output_video_encoder, output_video_preset, output_video_quality, output_video_scale, output_video_fps)
+    Parameters:
+     - None
+    Returns:
+     - [Slider] output_image_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_image_scale: float (numeric value between 0.25 and 8.0) 
+     - [Dropdown] output_audio_encoder: Literal['flac', 'aac', 'libmp3lame', 'libopus', 'libvorbis', 'pcm_s16le', 'pcm_s32le'] 
+     - [Slider] output_audio_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_audio_volume: float (numeric value between 0 and 100) 
+     - [Dropdown] output_video_encoder: Literal['libx264', 'libx264rgb', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'h264_qsv', 'hevc_nvenc', 'hevc_qsv', 'rawvideo'] 
+     - [Dropdown] output_video_preset: Literal['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'] 
+     - [Slider] output_video_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_video_scale: float (numeric value between 0.25 and 8.0) 
+     - [Slider] output_video_fps: float (numeric value between 1 and 60) 
+
+ - predict(api_name="/remote_update_14") -> (output_image_quality, output_image_scale, output_audio_encoder, output_audio_quality, output_audio_volume, output_video_encoder, output_video_preset, output_video_quality, output_video_scale, output_video_fps)
+    Parameters:
+     - None
+    Returns:
+     - [Slider] output_image_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_image_scale: float (numeric value between 0.25 and 8.0) 
+     - [Dropdown] output_audio_encoder: Literal['flac', 'aac', 'libmp3lame', 'libopus', 'libvorbis', 'pcm_s16le', 'pcm_s32le'] 
+     - [Slider] output_audio_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_audio_volume: float (numeric value between 0 and 100) 
+     - [Dropdown] output_video_encoder: Literal['libx264', 'libx264rgb', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'h264_qsv', 'hevc_nvenc', 'hevc_qsv', 'rawvideo'] 
+     - [Dropdown] output_video_preset: Literal['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'] 
+     - [Slider] output_video_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_video_scale: float (numeric value between 0.25 and 8.0) 
+     - [Slider] output_video_fps: float (numeric value between 1 and 60) 
+
+ - predict(api_name="/remote_update_15") -> (output_image_quality, output_image_scale, output_audio_encoder, output_audio_quality, output_audio_volume, output_video_encoder, output_video_preset, output_video_quality, output_video_scale, output_video_fps)
+    Parameters:
+     - None
+    Returns:
+     - [Slider] output_image_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_image_scale: float (numeric value between 0.25 and 8.0) 
+     - [Dropdown] output_audio_encoder: Literal['flac', 'aac', 'libmp3lame', 'libopus', 'libvorbis', 'pcm_s16le', 'pcm_s32le'] 
+     - [Slider] output_audio_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_audio_volume: float (numeric value between 0 and 100) 
+     - [Dropdown] output_video_encoder: Literal['libx264', 'libx264rgb', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'h264_qsv', 'hevc_nvenc', 'hevc_qsv', 'rawvideo'] 
+     - [Dropdown] output_video_preset: Literal['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'] 
+     - [Slider] output_video_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_video_scale: float (numeric value between 0.25 and 8.0) 
+     - [Slider] output_video_fps: float (numeric value between 1 and 60) 
+
+ - predict(api_name="/remote_update_16") -> (output_image_quality, output_image_scale, output_audio_encoder, output_audio_quality, output_audio_volume, output_video_encoder, output_video_preset, output_video_quality, output_video_scale, output_video_fps)
+    Parameters:
+     - None
+    Returns:
+     - [Slider] output_image_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_image_scale: float (numeric value between 0.25 and 8.0) 
+     - [Dropdown] output_audio_encoder: Literal['flac', 'aac', 'libmp3lame', 'libopus', 'libvorbis', 'pcm_s16le', 'pcm_s32le'] 
+     - [Slider] output_audio_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_audio_volume: float (numeric value between 0 and 100) 
+     - [Dropdown] output_video_encoder: Literal['libx264', 'libx264rgb', 'libx265', 'libvpx-vp9', 'h264_nvenc', 'h264_qsv', 'hevc_nvenc', 'hevc_qsv', 'rawvideo'] 
+     - [Dropdown] output_video_preset: Literal['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium', 'slow', 'slower', 'veryslow'] 
+     - [Slider] output_video_quality: float (numeric value between 0 and 100) 
+     - [Slider] output_video_scale: float (numeric value between 0.25 and 8.0) 
+     - [Slider] output_video_fps: float (numeric value between 1 and 60) 
+
+ - predict(files, api_name="/update") -> (value_110, value_111)
+    Parameters:
+     - [File] files: list[filepath] (required)  
+    Returns:
+     - [Audio] value_110: filepath 
+     - [Image] value_111: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(file, api_name="/update_1") -> (value_114, value_115)
+    Parameters:
+     - [File] file: filepath (required)  (The FileData class is a subclass of the GradioModel class that represents a file object within a Gradio interface. It is used to store file data and metadata when a file is uploaded.
+
+Attributes:
+    path: The server file path where the file is stored.
+    url: The normalized server URL pointing to the file.
+    size: The size of the file in bytes.
+    orig_name: The original filename before upload.
+    mime_type: The MIME type of the file.
+    is_stream: Indicates whether the file is a stream.
+    meta: Additional metadata used internally (should not be changed).) 
+    Returns:
+     - [Image] value_114: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+     - [Video] value_115: dict(video: filepath, subtitles: filepath | None) 
+
+ - predict(output_path, api_name="/update_output_path") -> 
+    Parameters:
+     - [Textbox] output_path: str (not required, defaults to:   /tmp)  
+    Returns:
+     - None
+
+ - predict(api_name="/start") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/run") -> (output, output)
+    Parameters:
+     - None
+    Returns:
+     - [Image] output: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+     - [Video] output: dict(video: filepath, subtitles: filepath | None) 
+
+ - predict(api_name="/stop") -> (output, output)
+    Parameters:
+     - None
+    Returns:
+     - [Image] output: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+     - [Video] output: dict(video: filepath, subtitles: filepath | None) 
+
+ - predict(api_name="/clear") -> (output, output)
+    Parameters:
+     - None
+    Returns:
+     - [Image] output: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+     - [Video] output: dict(video: filepath, subtitles: filepath | None) 
+
+ - predict(ui_workflow, api_name="/remote_update_17") -> 
+    Parameters:
+     - [Dropdown] ui_workflow: Literal['instant_runner', 'job_runner', 'job_manager'] (not required, defaults to:   instant_runner)  
+    Returns:
+     - None
+
+ - predict(job_action, api_name="/update_job_action") -> job_id
+    Parameters:
+     - [Dropdown] job_action: Literal['job-run', 'job-run-all', 'job-retry', 'job-retry-all'] (not required, defaults to:   job-run)  
+    Returns:
+     - [Dropdown] job_id: Literal['none'] 
+
+ - predict(api_name="/start_1") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(job_action, job_id, api_name="/run_1") -> job_id
+    Parameters:
+     - [Dropdown] job_action: Literal['job-run', 'job-run-all', 'job-retry', 'job-retry-all'] (not required, defaults to:   job-run)  
+     - [Dropdown] job_id: Literal['none'] (not required, defaults to:   none)  
+    Returns:
+     - [Dropdown] job_id: Literal['none'] 
+
+ - predict(api_name="/stop_1") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(ui_workflow, api_name="/remote_update_18") -> (job_action, job_id)
+    Parameters:
+     - [Dropdown] ui_workflow: Literal['instant_runner', 'job_runner', 'job_manager'] (not required, defaults to:   instant_runner)  
+    Returns:
+     - [Dropdown] job_action: Literal['job-run', 'job-run-all', 'job-retry', 'job-retry-all'] 
+     - [Dropdown] job_id: Literal['none'] 
+
+ - predict(job_action, selected_job_id, api_name="/update_2") -> (job_id, job_id, step_index)
+    Parameters:
+     - [Dropdown] job_action: Literal['job-create', 'job-submit', 'job-delete', 'job-add-step', 'job-remix-step', 'job-insert-step', 'job-remove-step'] (not required, defaults to:   job-create)  
+     - [Dropdown] selected_job_id: Literal['none'] (not required, defaults to:   none)  
+    Returns:
+     - [Textbox] job_id: str 
+     - [Dropdown] job_id: Literal['none'] 
+     - [Dropdown] step_index: Literal['none'] 
+
+ - predict(job_id, api_name="/update_step_index") -> step_index
+    Parameters:
+     - [Dropdown] job_id: Literal['none'] (not required, defaults to:   none)  
+    Returns:
+     - [Dropdown] step_index: Literal['none'] 
+
+ - predict(job_action, created_job_id, selected_job_id, selected_step_index, api_name="/apply") -> (job_action, job_id, job_id, step_index)
+    Parameters:
+     - [Dropdown] job_action: Literal['job-create', 'job-submit', 'job-delete', 'job-add-step', 'job-remix-step', 'job-insert-step', 'job-remove-step'] (not required, defaults to:   job-create)  
+     - [Textbox] created_job_id: str (required)  
+     - [Dropdown] selected_job_id: Literal['none'] (not required, defaults to:   none)  
+     - [Dropdown] selected_step_index: Literal['none'] (not required, defaults to:   none)  
+    Returns:
+     - [Dropdown] job_action: Literal['job-create', 'job-submit', 'job-delete', 'job-add-step', 'job-remix-step', 'job-insert-step', 'job-remove-step'] 
+     - [Textbox] job_id: str 
+     - [Dropdown] job_id: Literal['none'] 
+     - [Dropdown] step_index: Literal['none'] 
+
+ - predict(ui_workflow, api_name="/remote_update_19") -> (job_action, job_id, job_id, step_index)
+    Parameters:
+     - [Dropdown] ui_workflow: Literal['instant_runner', 'job_runner', 'job_manager'] (not required, defaults to:   instant_runner)  
+    Returns:
+     - [Dropdown] job_action: Literal['job-create', 'job-submit', 'job-delete', 'job-add-step', 'job-remix-step', 'job-insert-step', 'job-remove-step'] 
+     - [Textbox] job_id: str 
+     - [Dropdown] job_id: Literal['none'] 
+     - [Dropdown] step_index: Literal['none'] 
+
+ - predict(log_level, api_name="/update_log_level") -> 
+    Parameters:
+     - [Dropdown] log_level: Literal['error', 'warn', 'info', 'debug'] (not required, defaults to:   info)  
+    Returns:
+     - None
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_1") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_2") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_3") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_4") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_5") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_6") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_7") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_8") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_9") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_10") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_11") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_12") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_13") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_14") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_15") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_16") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_17") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_18") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_19") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_20") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_21") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_22") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_23") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_24") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_25") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_26") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_27") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_28") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_29") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_30") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_31") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_32") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_33") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_34") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_35") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_36") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_37") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_38") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_39") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_40") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_41") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_42") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_43") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_44") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_45") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_46") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_47") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_48") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_49") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_50") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_51") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/update_preview_image_52") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_1") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_2") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_3") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_4") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_5") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_6") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_7") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_8") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_9") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_10") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_11") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_12") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_13") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_14") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_15") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_16") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_17") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_18") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_19") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_20") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_21") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_22") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_23") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_24") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_25") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(preview_mode, preview_resolution, frame_number, api_name="/clear_and_update_preview_image_26") -> preview
+    Parameters:
+     - [Dropdown] preview_mode: Literal['default', 'frame-by-frame', 'face-by-face'] (not required, defaults to:   default)  
+     - [Dropdown] preview_resolution: Literal['512x512', '768x768', '1024x1024'] (not required, defaults to:   1024x1024)  
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Image] preview: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)) 
+
+ - predict(api_name="/update_preview_frame_slider") -> preview_frame
+    Parameters:
+     - None
+    Returns:
+     - [Slider] preview_frame: float (numeric value between 0 and 100) 
+
+ - predict(api_name="/update_preview_frame_slider_1") -> preview_frame
+    Parameters:
+     - None
+    Returns:
+     - [Slider] preview_frame: float (numeric value between 0 and 100) 
+
+ - predict(api_name="/update_preview_frame_slider_2") -> preview_frame
+    Parameters:
+     - None
+    Returns:
+     - [Slider] preview_frame: float (numeric value between 0 and 100) 
+
+ - predict(api_name="/update_preview_frame_slider_3") -> preview_frame
+    Parameters:
+     - None
+    Returns:
+     - [Slider] preview_frame: float (numeric value between 0 and 100) 
+
+ - predict(trim_frame, api_name="/update_trim_frame") -> 
+    Parameters:
+     - [Rangeslider] trim_frame: tuple[float | None, float | None] (not required, defaults to:   [0.0, 100.0])  
+    Returns:
+     - None
+
+ - predict(api_name="/remote_update_20") -> trim_frame
+    Parameters:
+     - None
+    Returns:
+     - [Rangeslider] trim_frame: tuple[float | None, float | None] 
+
+ - predict(api_name="/remote_update_21") -> trim_frame
+    Parameters:
+     - None
+    Returns:
+     - [Rangeslider] trim_frame: tuple[float | None, float | None] 
+
+ - predict(api_name="/remote_update_22") -> trim_frame
+    Parameters:
+     - None
+    Returns:
+     - [Rangeslider] trim_frame: tuple[float | None, float | None] 
+
+ - predict(api_name="/remote_update_23") -> trim_frame
+    Parameters:
+     - None
+    Returns:
+     - [Rangeslider] trim_frame: tuple[float | None, float | None] 
+
+ - predict(face_selector_mode, api_name="/update_face_selector_mode") -> (reference_face, reference_face_distance)
+    Parameters:
+     - [Dropdown] face_selector_mode: Literal['many', 'one', 'reference'] (not required, defaults to:   reference)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+     - [Slider] reference_face_distance: float (numeric value between 0.0 and 1.0) 
+
+ - predict(face_analyser_order, api_name="/update_face_selector_order") -> reference_face
+    Parameters:
+     - [Dropdown] face_analyser_order: Literal['left-right', 'right-left', 'top-bottom', 'bottom-top', 'small-large', 'large-small', 'best-worst', 'worst-best'] (not required, defaults to:   large-small)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(face_selector_gender, api_name="/update_face_selector_gender") -> reference_face
+    Parameters:
+     - [Dropdown] face_selector_gender: Literal['none', 'female', 'male'] (not required, defaults to:   none)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(face_selector_race, api_name="/update_face_selector_race") -> reference_face
+    Parameters:
+     - [Dropdown] face_selector_race: Literal['none', 'white', 'black', 'latino', 'asian', 'indian', 'arabic'] (not required, defaults to:   none)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(face_selector_age_range, api_name="/update_face_selector_age_range") -> reference_face
+    Parameters:
+     - [Rangeslider] face_selector_age_range: tuple[float | None, float | None] (not required, defaults to:   [0.0, 100.0])  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(reference_face_distance, api_name="/update_reference_face_distance") -> 
+    Parameters:
+     - [Slider] reference_face_distance: float (not required, defaults to:   0.3)  
+    Returns:
+     - None
+
+ - predict(reference_frame_number, api_name="/update_reference_frame_number") -> 
+    Parameters:
+     - [Slider] reference_frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(api_name="/update_reference_face_position") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/clear_reference_frame_number") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/clear_reference_face_position") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/update_reference_position_gallery") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_reference_frame_number_1") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/clear_reference_face_position_1") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/update_reference_position_gallery_1") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_reference_frame_number_2") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/clear_reference_face_position_2") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/update_reference_position_gallery_2") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_reference_frame_number_3") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/clear_reference_face_position_3") -> 
+    Parameters:
+     - None
+    Returns:
+     - None
+
+ - predict(api_name="/update_reference_position_gallery_3") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_and_update_reference_position_gallery") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_and_update_reference_position_gallery_1") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/clear_and_update_reference_position_gallery_2") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(api_name="/update_reference_position_gallery_4") -> reference_face
+    Parameters:
+     - None
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(frame_number, api_name="/update_reference_position_gallery_5") -> reference_face
+    Parameters:
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(frame_number, api_name="/update_reference_position_gallery_6") -> reference_face
+    Parameters:
+     - [Slider] frame_number: float (not required, defaults to:   0)  
+    Returns:
+     - [Gallery] reference_face: list[dict(image: dict(path: str | None (Path to a local file), url: str | None (Publicly available url or base64 encoded image), size: int | None (Size of image in bytes), orig_name: str | None (Original filename), mime_type: str | None (mime type of image), is_stream: bool (Can always be set to False), meta: dict(str, Any)), caption: str | None) | dict(video: filepath, caption: str | None)] 
+
+ - predict(face_occluder_model, api_name="/update_face_occluder_model") -> 
+    Parameters:
+     - [Dropdown] face_occluder_model: Literal['many', 'xseg_1', 'xseg_2', 'xseg_3'] (not required, defaults to:   xseg_1)  
+    Returns:
+     - None
+
+ - predict(face_parser_model, api_name="/update_face_parser_model") -> 
+    Parameters:
+     - [Dropdown] face_parser_model: Literal['bisenet_resnet_18', 'bisenet_resnet_34'] (not required, defaults to:   bisenet_resnet_34)  
+    Returns:
+     - None
+
+ - predict(face_mask_types, api_name="/update_face_mask_types") -> (face_mask_types, face_mask_areas, face_mask_regions, face_mask_blur)
+    Parameters:
+     - [Checkboxgroup] face_mask_types: list[Literal['box', 'occlusion', 'area', 'region']] (not required, defaults to:   ['box'])  
+    Returns:
+     - [Checkboxgroup] face_mask_types: list[Literal['box', 'occlusion', 'area', 'region']] 
+     - [Checkboxgroup] face_mask_areas: list[Literal['upper-face', 'lower-face', 'mouth']] 
+     - [Checkboxgroup] face_mask_regions: list[Literal['skin', 'left-eyebrow', 'right-eyebrow', 'left-eye', 'right-eye', 'glasses', 'nose', 'mouth', 'upper-lip', 'lower-lip']] 
+     - [Slider] face_mask_blur: float (numeric value between 0.0 and 1.0) 
+
+ - predict(face_mask_areas, api_name="/update_face_mask_areas") -> face_mask_areas
+    Parameters:
+     - [Checkboxgroup] face_mask_areas: list[Literal['upper-face', 'lower-face', 'mouth']] (not required, defaults to:   ['upper-face', 'lower-face', 'mouth'])  
+    Returns:
+     - [Checkboxgroup] face_mask_areas: list[Literal['upper-face', 'lower-face', 'mouth']] 
+
+ - predict(face_mask_regions, api_name="/update_face_mask_regions") -> face_mask_regions
+    Parameters:
+     - [Checkboxgroup] face_mask_regions: list[Literal['skin', 'left-eyebrow', 'right-eyebrow', 'left-eye', 'right-eye', 'glasses', 'nose', 'mouth', 'upper-lip', 'lower-lip']] (not required, defaults to:   ['skin', 'left-eyebrow', 'right-eyebrow', 'left-eye', 'right-eye', 'glasses', 'nose', 'mouth', 'upper-lip', 'lower-lip'])  
+    Returns:
+     - [Checkboxgroup] face_mask_regions: list[Literal['skin', 'left-eyebrow', 'right-eyebrow', 'left-eye', 'right-eye', 'glasses', 'nose', 'mouth', 'upper-lip', 'lower-lip']] 
+
+ - predict(face_mask_blur, api_name="/update_face_mask_blur") -> 
+    Parameters:
+     - [Slider] face_mask_blur: float (not required, defaults to:   0.3)  
+    Returns:
+     - None
+
+ - predict(face_mask_padding_top, face_mask_padding_right, face_mask_padding_bottom, face_mask_padding_left, api_name="/update_face_mask_padding") -> 
+    Parameters:
+     - [Slider] face_mask_padding_top: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_right: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_bottom: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_left: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(face_mask_padding_top, face_mask_padding_right, face_mask_padding_bottom, face_mask_padding_left, api_name="/update_face_mask_padding_1") -> 
+    Parameters:
+     - [Slider] face_mask_padding_top: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_right: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_bottom: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_left: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(face_mask_padding_top, face_mask_padding_right, face_mask_padding_bottom, face_mask_padding_left, api_name="/update_face_mask_padding_2") -> 
+    Parameters:
+     - [Slider] face_mask_padding_top: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_right: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_bottom: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_left: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(face_mask_padding_top, face_mask_padding_right, face_mask_padding_bottom, face_mask_padding_left, api_name="/update_face_mask_padding_3") -> 
+    Parameters:
+     - [Slider] face_mask_padding_top: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_right: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_bottom: float (not required, defaults to:   0)  
+     - [Slider] face_mask_padding_left: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(face_detector_model, api_name="/update_face_detector_model") -> (face_detector_model, face_detector_size)
+    Parameters:
+     - [Dropdown] face_detector_model: Literal['many', 'retinaface', 'scrfd', 'yolo_face', 'yunet'] (not required, defaults to:   yolo_face)  
+    Returns:
+     - [Dropdown] face_detector_model: Literal['many', 'retinaface', 'scrfd', 'yolo_face', 'yunet'] 
+     - [Dropdown] face_detector_size: Literal['640x640'] 
+
+ - predict(face_detector_size, api_name="/update_face_detector_size") -> 
+    Parameters:
+     - [Dropdown] face_detector_size: Literal['640x640'] (not required, defaults to:   640x640)  
+    Returns:
+     - None
+
+ - predict(face_detector_margin, api_name="/update_face_detector_margin") -> 
+    Parameters:
+     - [Slider] face_detector_margin: float (not required, defaults to:   0)  
+    Returns:
+     - None
+
+ - predict(face_detector_angles, api_name="/update_face_detector_angles") -> face_detector_angles
+    Parameters:
+     - [Checkboxgroup] face_detector_angles: list[Literal['0', '90', '180', '270']] (not required, defaults to:   [0])  
+    Returns:
+     - [Checkboxgroup] face_detector_angles: list[Literal['0', '90', '180', '270']] 
+
+ - predict(face_detector_score, api_name="/update_face_detector_score") -> 
+    Parameters:
+     - [Slider] face_detector_score: float (not required, defaults to:   0.5)  
+    Returns:
+     - None
+
+ - predict(face_landmarker_model, api_name="/update_face_landmarker_model") -> face_landmarker_model
+    Parameters:
+     - [Dropdown] face_landmarker_model: Literal['many', '2dfan4', 'peppa_wutz'] (not required, defaults to:   2dfan4)  
+    Returns:
+     - [Dropdown] face_landmarker_model: Literal['many', '2dfan4', 'peppa_wutz'] 
+
+ - predict(face_landmarker_score, api_name="/update_face_landmarker_score") -> 
+    Parameters:
+     - [Slider] face_landmarker_score: float (not required, defaults to:   0.5)  
+    Returns:
+     - None
+
+ - predict(voice_extractor_model, api_name="/update_voice_extractor_model") -> voice_extractor_model
+    Parameters:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] (not required, defaults to:   kim_vocal_2)  
+    Returns:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] 
+
+ - predict(api_name="/remote_update_24") -> voice_extractor_model
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] 
+
+ - predict(api_name="/remote_update_25") -> voice_extractor_model
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] 
+
+ - predict(api_name="/remote_update_26") -> voice_extractor_model
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] 
+
+ - predict(api_name="/remote_update_27") -> voice_extractor_model
+    Parameters:
+     - None
+    Returns:
+     - [Dropdown] voice_extractor_model: Literal['kim_vocal_1', 'kim_vocal_2', 'uvr_mdxnet'] 
+
+ - predict(common_options, api_name="/update_3") -> 
+    Parameters:
+     - [Checkboxgroup] common_options: list[Literal['keep-temp']] (not required, defaults to:   [])  
+    Returns:
+     - None
+
+ - predict(api_name="/read_logs") -> terminal
+    Parameters:
+     - None
+    Returns:
+     - [Textbox] terminal: str 
+

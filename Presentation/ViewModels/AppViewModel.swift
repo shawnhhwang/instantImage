@@ -75,6 +75,20 @@ public final class AppViewModel: ObservableObject {
     @Published public var isCompareActive: Bool = false
     @Published public var focusedCompareIndex: Int = 0
     
+    // FaceSwap (FaceFusion API) properties
+    @Published public var isFaceSwapSetupPresented: Bool = false
+    @Published public var isFaceSwapProcessing: Bool = false
+    @Published public var faceSwapStatusMessage: String = ""
+    @Published public var availableSourceFaces: [SourceFaceItem] = []
+    @Published public var selectedSourceFace: SourceFaceItem? = nil
+    @Published public var faceEnhancerBlend: Double = 60.0
+    @Published public var currentFaceSwapResult: FaceSwapResult? = nil
+    @Published public var isFaceSwapPreviewPresented: Bool = false
+    @Published public var faceSwapTargetImage: ImageItem? = nil
+    @Published public var faceSwapErrorMessage: String? = nil
+    @Published public var faceSwapPreviewMode: FaceSwapPreviewMode = .splitCurtain
+    @Published public var faceSwapSplitPosition: CGFloat = 0.5
+    
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
     
@@ -825,10 +839,18 @@ public final class AppViewModel: ObservableObject {
         case KeyCode.space:
             isDetailActive.toggle()
         case KeyCode.escape:
-            if isDetailActive {
+            if isFaceSwapPreviewPresented {
+                discardFaceSwapResult()
+            } else if isFaceSwapSetupPresented {
+                if !isFaceSwapProcessing { isFaceSwapSetupPresented = false }
+            } else if isDetailActive {
                 isDetailActive = false
             }
             isCompareActive = false
+        case 1: // S Key (AI FaceSwap)
+            if !isFaceSwapSetupPresented && !isFaceSwapPreviewPresented {
+                openFaceSwapSetup()
+            }
         case KeyCode.fKey, KeyCode.enter:
             toggleFullScreen()
         case KeyCode.zKey:
@@ -1126,4 +1148,165 @@ public final class AppViewModel: ObservableObject {
     public func clearSelectedIndexes() {
         selectedIndexes.removeAll()
     }
+    
+    // MARK: - FaceSwap Actions
+    
+    public func loadSourceFaces() {
+        let faces = FaceSwapService.shared.loadAvailableSourceFaces()
+        self.availableSourceFaces = faces
+        if selectedSourceFace == nil, let first = faces.first {
+            selectedSourceFace = first
+        }
+    }
+    
+    public func openFaceSwapSetup(for item: ImageItem? = nil) {
+        let target = item ?? selectedImage
+        guard let target = target else {
+            showToast("請先選取一張目標相片以進行換臉")
+            return
+        }
+        self.faceSwapTargetImage = target
+        loadSourceFaces()
+        self.faceSwapErrorMessage = nil
+        self.faceSwapStatusMessage = ""
+        self.isFaceSwapSetupPresented = true
+    }
+    
+    public func startFaceSwap() {
+        guard let target = faceSwapTargetImage else {
+            showToast("未指定目標相片")
+            return
+        }
+        
+        self.isFaceSwapProcessing = true
+        self.faceSwapErrorMessage = nil
+        self.faceSwapStatusMessage = "正在初始化 FaceFusion 連線..."
+        
+        let sourceURL = selectedSourceFace?.url
+        let blend = self.faceEnhancerBlend
+        
+        Task {
+            do {
+                let result = try await FaceSwapService.shared.runFaceSwap(
+                    targetURL: target.url,
+                    sourceFaceURL: sourceURL,
+                    blend: blend
+                ) { [weak self] progress in
+                    Task { @MainActor in
+                        self?.faceSwapStatusMessage = progress
+                    }
+                }
+                
+                await MainActor.run {
+                    self.currentFaceSwapResult = result
+                    self.isFaceSwapProcessing = false
+                    self.isFaceSwapSetupPresented = false
+                    self.isFaceSwapPreviewPresented = true
+                    self.faceSwapSplitPosition = 0.5
+                    self.showToast("✨ AI 換臉成功！請在預覽視窗比對成果後決定是否儲存")
+                }
+            } catch {
+                await MainActor.run {
+                    self.isFaceSwapProcessing = false
+                    self.faceSwapErrorMessage = error.localizedDescription
+                    self.showToast("換臉失敗: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
+    public func cancelFaceSwap() {
+        FaceSwapService.shared.cancelRunningSwap()
+        self.isFaceSwapProcessing = false
+        self.faceSwapStatusMessage = "已取消運算"
+    }
+    
+    public func saveFaceSwapResult(destination: FaceSwapSaveDestination) {
+        guard let result = currentFaceSwapResult else { return }
+        
+        let fileManager = FileManager.default
+        let sourceTempURL = result.previewOutputURL
+        guard fileManager.fileExists(atPath: sourceTempURL.path) else {
+            showToast("找不到暫存成果檔案，無法儲存")
+            return
+        }
+        
+        do {
+            switch destination {
+            case .sameFolder:
+                let targetDir = result.targetURL.deletingLastPathComponent()
+                let targetBaseName = result.targetURL.deletingPathExtension().lastPathComponent
+                var finalDestURL = targetDir.appendingPathComponent("\(targetBaseName)_swap.heic")
+                
+                var counter = 1
+                while fileManager.fileExists(atPath: finalDestURL.path) {
+                    finalDestURL = targetDir.appendingPathComponent("\(targetBaseName)_swap_\(counter).heic")
+                    counter += 1
+                }
+                
+                try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
+                showToast("已儲存換臉影像至: \(finalDestURL.lastPathComponent)")
+                
+            case .swapOutput:
+                guard let swapDir = FaceSwapService.shared.resolveSwapDirectory() else {
+                    throw NSError(domain: "FaceSwap", code: 1, userInfo: [NSLocalizedDescriptionKey: "無法找到 swap 資料夾"])
+                }
+                let outputDir = swapDir.appendingPathComponent("output")
+                try? fileManager.createDirectory(at: outputDir, withIntermediateDirectories: true)
+                
+                var finalDestURL = outputDir.appendingPathComponent(result.filename)
+                var counter = 1
+                while fileManager.fileExists(atPath: finalDestURL.path) {
+                    let base = (result.filename as NSString).deletingPathExtension
+                    let ext = (result.filename as NSString).pathExtension
+                    finalDestURL = outputDir.appendingPathComponent("\(base)_\(counter).\(ext)")
+                    counter += 1
+                }
+                
+                try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
+                showToast("已儲存換臉影像至 swap/output: \(finalDestURL.lastPathComponent)")
+                
+            case .saveAs:
+                let savePanel = NSSavePanel()
+                savePanel.title = "儲存換臉成果影像"
+                savePanel.nameFieldStringValue = (result.targetURL.deletingPathExtension().lastPathComponent) + "_swap.heic"
+                savePanel.allowedContentTypes = [.heic]
+                
+                if savePanel.runModal() == .OK, let selectedURL = savePanel.url {
+                    if fileManager.fileExists(atPath: selectedURL.path) {
+                        try? fileManager.removeItem(at: selectedURL)
+                    }
+                    try fileManager.copyItem(at: sourceTempURL, to: selectedURL)
+                    showToast("已儲存換臉成果至: \(selectedURL.lastPathComponent)")
+                } else {
+                    return
+                }
+            }
+            
+            // Clean up preview file and dismiss
+            try? fileManager.removeItem(at: sourceTempURL)
+            self.currentFaceSwapResult = nil
+            self.isFaceSwapPreviewPresented = false
+            self.refreshFolderContents()
+            
+        } catch {
+            showToast("儲存失敗: \(error.localizedDescription)")
+        }
+    }
+    
+    public func discardFaceSwapResult() {
+        if let result = currentFaceSwapResult {
+            try? FileManager.default.removeItem(at: result.previewOutputURL)
+        }
+        self.currentFaceSwapResult = nil
+        self.isFaceSwapPreviewPresented = false
+        self.showToast("已放棄換臉成果")
+    }
+}
+
+public enum FaceSwapPreviewMode: String, CaseIterable, Identifiable {
+    case splitCurtain = "前後分割簾"
+    case sideBySide = "雙圖並排"
+    
+    public var id: String { rawValue }
 }
