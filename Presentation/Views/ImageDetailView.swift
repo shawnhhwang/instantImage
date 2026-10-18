@@ -2,71 +2,6 @@ import SwiftUI
 import MetalKit
 import CoreImage
 
-// MARK: - Keyboard Capture View (failsafe for arrow key navigation)
-
-final class KeyCaptureNSView: NSView {
-    weak var viewModel: AppViewModel?
-    
-    private enum KeyCode {
-        static let leftArrow: UInt16 = 123
-        static let rightArrow: UInt16 = 124
-        static let upArrow: UInt16 = 126
-        static let downArrow: UInt16 = 125
-    }
-    
-    override var acceptsFirstResponder: Bool { true }
-    
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        self.wantsLayer = true
-        self.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        self.wantsLayer = true
-        self.layer?.backgroundColor = NSColor.clear.cgColor
-    }
-    
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        DispatchQueue.main.async { [weak self] in
-            guard let self, let window = self.window else { return }
-            window.makeFirstResponder(self)
-        }
-    }
-    
-    override func keyDown(with event: NSEvent) {
-        Task { @MainActor [weak viewModel] in
-            guard let vm = viewModel else { return }
-            switch event.keyCode {
-            case KeyCode.leftArrow: vm.selectPreviousImage()
-            case KeyCode.rightArrow: vm.selectNextImage()
-            case KeyCode.upArrow: vm.selectFirstImage()
-            case KeyCode.downArrow: vm.selectLastImage()
-            default:  break
-            }
-        }
-        if ![KeyCode.leftArrow, KeyCode.rightArrow, KeyCode.upArrow, KeyCode.downArrow].contains(event.keyCode) {
-            super.keyDown(with: event)
-        }
-    }
-}
-
-struct KeyCaptureView: NSViewRepresentable {
-    @ObservedObject var viewModel: AppViewModel
-    
-    func makeNSView(context: Context) -> KeyCaptureNSView {
-        let view = KeyCaptureNSView()
-        view.viewModel = viewModel
-        return view
-    }
-    
-    func updateNSView(_ nsView: KeyCaptureNSView, context: Context) {
-        nsView.viewModel = viewModel
-    }
-}
-
 // MARK: - ImageDetailView (Awwwards-Caliber Darkroom Workspace)
 
 public struct ImageDetailView: View {
@@ -85,9 +20,12 @@ public struct ImageDetailView: View {
                     // Studio Stage Canvas Backdrop (Crisp Light Studio Neutral)
                     LuminaTheme.Colors.darkroomCanvas
                         .edgesIgnoringSafeArea(.all)
+                        .onTapGesture {
+                            NSApp.keyWindow?.makeFirstResponder(nil)
+                        }
                     
                     // Key Capture invisible zero-frame helper (does not tint or overlay canvas)
-                    KeyCaptureView(viewModel: viewModel)
+                    KeyCaptureView()
                         .frame(width: 0, height: 0)
                         .opacity(0)
                         .allowsHitTesting(false)
@@ -261,6 +199,19 @@ public struct ImageDetailView: View {
                     shortcut: "S"
                 ) {
                     viewModel.openFaceSwapSetup(for: selectedImage)
+                }
+                
+                // Fast Convert to HEIC Button
+                if selectedImage.url.pathExtension.lowercased() != "heic" && selectedImage.url.pathExtension.lowercased() != "heif" {
+                    LuminaPillButton(
+                        icon: "bolt.badge.automatic.fill",
+                        label: "轉 HEIC",
+                        isSelected: false,
+                        selectedColor: LuminaTheme.Colors.cyanAccent,
+                        shortcut: "H"
+                    ) {
+                        viewModel.convertSelectedImagesToHEIC()
+                    }
                 }
                 
                 // Before/After Split Curtain

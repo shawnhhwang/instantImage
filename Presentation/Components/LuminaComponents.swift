@@ -425,9 +425,21 @@ public struct LuminaSearchField: View {
                 .font(.system(size: 11))
                 .foregroundColor(LuminaTheme.Colors.textPrimary)
                 .focused($isFocused)
+                .onSubmit {
+                    isFocused = false
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
+                .onExitCommand {
+                    isFocused = false
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }
             
             if !text.isEmpty {
-                Button(action: { text = "" }) {
+                Button(action: {
+                    text = ""
+                    isFocused = false
+                    NSApp.keyWindow?.makeFirstResponder(nil)
+                }) {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 10))
                         .foregroundColor(LuminaTheme.Colors.textTertiary)
@@ -455,4 +467,49 @@ public struct LuminaSearchField: View {
         )
         .animation(.easeOut(duration: 0.15), value: isFocused)
     }
+}
+
+// MARK: - Key Capture Helper for Failsafe Focus
+public final class KeyCaptureNSView: NSView {
+    public override var acceptsFirstResponder: Bool { true }
+    
+    public override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.clear.cgColor
+    }
+    
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        self.wantsLayer = true
+        self.layer?.backgroundColor = NSColor.clear.cgColor
+    }
+    
+    public override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window else { return }
+            if !(window.firstResponder is NSTextView) {
+                window.makeFirstResponder(self)
+            }
+        }
+    }
+    
+    public override func keyDown(with event: NSEvent) {
+        NotificationCenter.default.post(
+            name: NSNotification.Name("didReceiveKeyboardEvent"),
+            object: nil,
+            userInfo: ["event": event]
+        )
+    }
+}
+
+public struct KeyCaptureView: NSViewRepresentable {
+    public init() {}
+    
+    public func makeNSView(context: Context) -> KeyCaptureNSView {
+        KeyCaptureNSView()
+    }
+    
+    public func updateNSView(_ nsView: KeyCaptureNSView, context: Context) {}
 }

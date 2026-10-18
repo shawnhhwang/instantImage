@@ -29,10 +29,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // NSApp.modalWindow to be non-nil even during normal photo browsing.
             // This was the root cause of arrow keys being silently dropped.
             
-            // Skip only when the user is actively typing into a text field.
-            if self.isEditingText() {
+            // If Escape is pressed, always drop any active text focus and pass to shortcut handler
+            if event.keyCode == 53 {
+                DispatchQueue.main.async {
+                    (event.window ?? NSApp.keyWindow)?.makeFirstResponder(nil)
+                }
+            } else if self.isEditingText(for: event) {
                 return event
             }
+            
             let shortcutKeys: Set<UInt16> = [
                 123, // Left Arrow
                 124, // Right Arrow
@@ -42,6 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 53,  // Escape
                 3,   // F key (FullScreen)
                 36,  // Enter key (FullScreen)
+                76,  // Keypad Enter
                 6,   // Z key (Zoom Toggle)
                 18,  // 1 key (Rating 1)
                 19,  // 2 key (Rating 2)
@@ -52,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 17,  // T key (Tag Toggle)
                 46,  // M key (Move to destination)
                 37,  // L key (Loupe toggle)
-                51,  // Delete key
+                51,  // Delete key (Backspace)
                 117, // Forward Delete key (Del)
                 14,  // E key (Auto light)
                 13,  // W key (Auto white balance)
@@ -62,10 +68,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 9,   // V key (Paste settings)
                 44,  // ? / / key (Shortcut guide)
                 34,  // I key (Inspector toggle)
-                11   // B key (Filmstrip toggle)
+                11,  // B key (Filmstrip toggle)
+                1,   // S key (FaceSwap / Save)
+                7,   // X key (Reject / Keep Original)
+                4    // H key (Fast Convert to HEIC & Delete Original)
             ]
             
             if shortcutKeys.contains(event.keyCode) {
+                LoggerManager.shared.log("Captured global shortcut key: \(event.keyCode)", level: .debug)
                 // Post event to NotificationCenter for main view model to consume
                 NotificationCenter.default.post(
                     name: NSNotification.Name("didReceiveKeyboardEvent"),
@@ -85,17 +95,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func isEditingText() -> Bool {
-        guard let window = NSApp.keyWindow else { return false }
+    private func isEditingText(for event: NSEvent) -> Bool {
+        guard let window = event.window ?? NSApp.keyWindow ?? NSApp.mainWindow else { return false }
         guard let firstResponder = window.firstResponder else { return false }
         // Only block keyboard events if the user is genuinely editing inside an
-        // NSTextField (i.e. the field editor NSText is active inside it) or an
-        // NSTextView that is editable and has focus.
+        // active field editor NSTextView.
         if let textView = firstResponder as? NSTextView {
-            return textView.isEditable
+            return textView.isEditable && textView.isFieldEditor
         }
-        // NSTextField itself is never a field editor – when editing, the internal
-        // field-editor NSTextView becomes first responder (handled above).
         return false
     }
 }

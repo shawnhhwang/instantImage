@@ -2,6 +2,8 @@ import Foundation
 import SwiftUI
 import CoreGraphics
 import AppKit
+import ImageIO
+import UniformTypeIdentifiers
 
 public enum SortOption: String, CaseIterable, Identifiable {
     case filename = "檔名"
@@ -106,6 +108,7 @@ public final class AppViewModel: ObservableObject {
     @Published public var isFaceSwapBatchReviewPresented: Bool = false
     @Published public var faceSwapBatchReviewIndex: Int = 0
     @Published public var faceSwapBatchSaveDestination: FaceSwapSaveDestination = .sameFolder
+    @Published public var currentFaceSwapStagingDir: URL? = nil
     
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
@@ -187,9 +190,17 @@ public final class AppViewModel: ObservableObject {
                 self.updateDisplayedImages()
                 self.isLoading = false
                 
-                // Clear selection if index is out of bounds
-                if let index = selectedImageIndex, index >= self.displayedImages.count {
-                    selectedImageIndex = nil
+                // Ensure valid selection
+                if let index = selectedImageIndex {
+                    if index >= self.displayedImages.count {
+                        selectedImageIndex = self.displayedImages.isEmpty ? nil : self.displayedImages.count - 1
+                        if let validIdx = selectedImageIndex {
+                            selectedIndexes = [validIdx]
+                        }
+                    }
+                } else if !self.displayedImages.isEmpty {
+                    selectedImageIndex = 0
+                    selectedIndexes = [0]
                 }
                 
                 // Begin background loading of thumbnails and EXIF metadata
@@ -418,8 +429,13 @@ public final class AppViewModel: ObservableObject {
             if current < displayedImages.count - 1 {
                 selectedImageIndex = current + 1
             }
+        } else if let last = selectedIndexes.sorted().last, last < displayedImages.count - 1 {
+            selectedImageIndex = last + 1
         } else {
             selectedImageIndex = 0
+        }
+        if let idx = selectedImageIndex {
+            selectedIndexes = [idx]
         }
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
@@ -431,8 +447,13 @@ public final class AppViewModel: ObservableObject {
             if current > 0 {
                 selectedImageIndex = current - 1
             }
+        } else if let first = selectedIndexes.sorted().first, first > 0 {
+            selectedImageIndex = first - 1
         } else {
             selectedImageIndex = 0
+        }
+        if let idx = selectedImageIndex {
+            selectedIndexes = [idx]
         }
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
@@ -441,13 +462,16 @@ public final class AppViewModel: ObservableObject {
     public func selectFirstImage() {
         guard !displayedImages.isEmpty else { return }
         selectedImageIndex = 0
+        selectedIndexes = [0]
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
     }
     
     public func selectLastImage() {
         guard !displayedImages.isEmpty else { return }
-        selectedImageIndex = displayedImages.count - 1
+        let lastIdx = displayedImages.count - 1
+        selectedImageIndex = lastIdx
+        selectedIndexes = [lastIdx]
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
     }
@@ -753,16 +777,63 @@ public final class AppViewModel: ObservableObject {
     }
     
     public func deleteSelectedImage() {
-        let index: Int
         if isCompareActive {
             let compareItems = Array(selectedIndexes).sorted()
             guard focusedCompareIndex >= 0, focusedCompareIndex < compareItems.count else { return }
-            index = compareItems[focusedCompareIndex]
-        } else {
-            guard let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count else { return }
-            index = selIdx
+            let index = compareItems[focusedCompareIndex]
+            let item = displayedImages[index]
+            let fileURL = item.url
+            
+            LoggerManager.shared.log("Trashing file from compare: \(fileURL.path)", level: .info)
+            NSWorkspace.shared.recycle([fileURL])
+            if let imgIndex = images.firstIndex(where: { $0.url == fileURL }) {
+                images.remove(at: imgIndex)
+            }
+            selectedIndexes.remove(index)
+            if selectedIndexes.isEmpty {
+                isCompareActive = false
+            } else if focusedCompareIndex >= selectedIndexes.count {
+                focusedCompareIndex = max(0, selectedIndexes.count - 1)
+            }
+            updateDisplayedImages()
+            showToast("已將 \(item.filename) 移至資源回收桶")
+            return
         }
         
+        if selectedIndexes.count > 1 {
+            let sortedIndices = Array(selectedIndexes).sorted(by: >)
+            var urlsToRecycle: [URL] = []
+            var count = 0
+            for idx in sortedIndices {
+                if idx >= 0 && idx < displayedImages.count {
+                    let item = displayedImages[idx]
+                    urlsToRecycle.append(item.url)
+                    count += 1
+                }
+            }
+            guard !urlsToRecycle.isEmpty else { return }
+            LoggerManager.shared.log("Trashing \(count) files", level: .info)
+            NSWorkspace.shared.recycle(urlsToRecycle)
+            let urlSet = Set(urlsToRecycle)
+            images.removeAll(where: { urlSet.contains($0.url) })
+            clearSelectedIndexes()
+            updateDisplayedImages()
+            if displayedImages.isEmpty {
+                selectedImageIndex = nil
+            } else {
+                let fallback = min(sortedIndices.last ?? 0, displayedImages.count - 1)
+                selectedImageIndex = max(0, fallback)
+                if let newIdx = selectedImageIndex {
+                    selectedIndexes = [newIdx]
+                }
+            }
+            if isDetailActive { calculateHistogramForSelected() }
+            showToast("已將 \(count) 張相片移至資源回收桶")
+            return
+        }
+        
+        guard let selIdx = selectedImageIndex ?? selectedIndexes.first, selIdx >= 0, selIdx < displayedImages.count else { return }
+        let index = selIdx
         let item = displayedImages[index]
         let fileURL = item.url
         
@@ -794,18 +865,18 @@ public final class AppViewModel: ObservableObject {
         }
         selectedIndexes = newSelectedIndexes
         
-        if isCompareActive {
-            if selectedIndexes.isEmpty {
-                isCompareActive = false
-            } else if focusedCompareIndex >= selectedIndexes.count {
-                focusedCompareIndex = max(0, selectedIndexes.count - 1)
-            }
-        } else {
-            selectedImageIndex = nextSelectIndex
+        selectedImageIndex = nextSelectIndex
+        if let newIdx = selectedImageIndex {
+            selectedIndexes.insert(newIdx)
         }
         
         updateDisplayedImages()
-        if isDetailActive { calculateHistogramForSelected() }
+        if displayedImages.isEmpty {
+            selectedImageIndex = nil
+            isDetailActive = false
+        } else if isDetailActive {
+            calculateHistogramForSelected()
+        }
         
         LoggerManager.shared.log("Successfully trashed \(item.filename)", level: .info)
         showToast("已將 \(item.filename) 移至資源回收桶")
@@ -841,11 +912,69 @@ public final class AppViewModel: ObservableObject {
         static let key5: UInt16 = 23
         static let key0: UInt16 = 29
         static let tKey: UInt16 = 17
+        static let keypadEnter: UInt16 = 76
         static let delete: UInt16 = 51
         static let forwardDelete: UInt16 = 117
+        static let hKey: UInt16 = 4
     }
     
     private func handleKeyboardEvent(_ event: NSEvent) {
+        LoggerManager.shared.log("handleKeyboardEvent: keyCode=\(event.keyCode)", level: .debug)
+        
+        // Modal 1: FaceSwap Batch Review
+        if isFaceSwapBatchReviewPresented {
+            switch event.keyCode {
+            case KeyCode.leftArrow:
+                previousBatchReviewItem()
+            case KeyCode.rightArrow:
+                nextBatchReviewItem()
+            case KeyCode.delete, KeyCode.forwardDelete, 7, KeyCode.space: // Delete, DEL, X, Space -> Keep Original
+                decideBatchItem(at: faceSwapBatchReviewIndex, decision: .keptOriginal)
+            case KeyCode.enter, KeyCode.keypadEnter, 1: // Enter, Keypad Enter, S -> Save Swapped
+                decideBatchItem(at: faceSwapBatchReviewIndex, decision: .saved)
+            case KeyCode.escape:
+                finishBatchReview()
+            default:
+                break
+            }
+            return
+        }
+        
+        // Modal 2: FaceSwap Single Preview
+        if isFaceSwapPreviewPresented {
+            switch event.keyCode {
+            case KeyCode.delete, KeyCode.forwardDelete, KeyCode.escape, 7: // Delete, DEL, Esc, X -> Discard
+                discardFaceSwapResult()
+            case KeyCode.enter, KeyCode.keypadEnter, 1: // Enter, Keypad Enter, S -> Save
+                saveFaceSwapResult(destination: .sameFolder)
+            default:
+                break
+            }
+            return
+        }
+        
+        // Modal 3: FaceSwap Setup
+        if isFaceSwapSetupPresented {
+            switch event.keyCode {
+            case KeyCode.escape:
+                if !isFaceSwapProcessing {
+                    isFaceSwapSetupPresented = false
+                }
+            default:
+                break
+            }
+            return
+        }
+        
+        // Modal 4: Shortcut Guide Sheet
+        if isShortcutSheetVisible {
+            if event.keyCode == KeyCode.escape {
+                isShortcutSheetVisible = false
+                return
+            }
+        }
+        
+        // Standard Grid / Detail / Compare Keyboard Navigation
         switch event.keyCode {
         case KeyCode.leftArrow:
             selectPreviousImage()
@@ -858,19 +987,16 @@ public final class AppViewModel: ObservableObject {
         case KeyCode.space:
             isDetailActive.toggle()
         case KeyCode.escape:
-            if isFaceSwapPreviewPresented {
-                discardFaceSwapResult()
-            } else if isFaceSwapSetupPresented {
-                if !isFaceSwapProcessing { isFaceSwapSetupPresented = false }
-            } else if isDetailActive {
+            if isDetailActive {
                 isDetailActive = false
             }
             isCompareActive = false
+            isShortcutSheetVisible = false
         case 1: // S Key (AI FaceSwap)
             if !isFaceSwapSetupPresented && !isFaceSwapPreviewPresented {
                 openFaceSwapSetup()
             }
-        case KeyCode.fKey, KeyCode.enter:
+        case KeyCode.fKey, KeyCode.enter, KeyCode.keypadEnter:
             toggleFullScreen()
         case KeyCode.zKey:
             toggleZoom()
@@ -929,9 +1055,9 @@ public final class AppViewModel: ObservableObject {
                 isFilmstripVisible.toggle()
             }
         case KeyCode.delete, KeyCode.forwardDelete:
-            if event.modifierFlags.contains(.command) {
-                deleteSelectedImage()
-            }
+            deleteSelectedImage()
+        case KeyCode.hKey:
+            convertSelectedImagesToHEIC()
         default:
             break
         }
@@ -1295,6 +1421,9 @@ public final class AppViewModel: ObservableObject {
         self.faceSwapErrorMessage = nil
         self.faceSwapStatusMessage = "正在連線 FaceFusion 伺服器..."
         
+        let stagingDir = resolveFaceSwapStagingDirectory(for: [target.url])
+        self.currentFaceSwapStagingDir = stagingDir
+        
         let sourceURL = selectedSourceFace?.url
         let blend = self.faceEnhancerBlend
         let api = self.faceSwapApiUrl
@@ -1305,7 +1434,8 @@ public final class AppViewModel: ObservableObject {
                     targetURL: target.url,
                     sourceFaceURL: sourceURL,
                     blend: blend,
-                    apiUrl: api
+                    apiUrl: api,
+                    stagingDirectoryURL: stagingDir
                 ) { [weak self] progress in
                     Task { @MainActor in
                         self?.faceSwapStatusMessage = progress
@@ -1345,6 +1475,9 @@ public final class AppViewModel: ObservableObject {
         self.faceSwapBatchItems = faceSwapBatchTargets.map { FaceSwapBatchItem(targetURL: $0, decision: .pending) }
         self.faceSwapStatusMessage = "正在初始化批次工作佇列 (共 \(faceSwapBatchTargets.count) 張)..."
         
+        let stagingDir = resolveFaceSwapStagingDirectory(for: faceSwapBatchTargets)
+        self.currentFaceSwapStagingDir = stagingDir
+        
         let sourceURL = selectedSourceFace?.url
         let blend = self.faceEnhancerBlend
         let targets = self.faceSwapBatchTargets
@@ -1357,6 +1490,7 @@ public final class AppViewModel: ObservableObject {
                     sourceFaceURL: sourceURL,
                     blend: blend,
                     apiUrl: api,
+                    stagingDirectoryURL: stagingDir,
                     onProgress: { [weak self] cur, total, line in
                         Task { @MainActor in
                             self?.faceSwapBatchCurrentIndex = cur
@@ -1422,7 +1556,7 @@ public final class AppViewModel: ObservableObject {
             do {
                 let savedURL = try performSaveFaceSwap(result: result, destination: saveDest)
                 item.savedURL = savedURL
-                showToast("已儲存換臉相片: \(savedURL.lastPathComponent)")
+                showToast("✨ 已刪除舊檔並以換臉成果取代: \(savedURL.lastPathComponent)")
             } catch {
                 showToast("儲存失敗: \(error.localizedDescription)")
             }
@@ -1460,7 +1594,7 @@ public final class AppViewModel: ObservableObject {
         }
         
         if decision == .saved {
-            showToast("已批次儲存 \(count) 張換臉影像")
+            showToast("✨ 已批次儲存 \(count) 張換臉成果並取代舊檔")
         } else {
             showToast("已批次保留原圖 \(count) 張相片")
         }
@@ -1479,8 +1613,15 @@ public final class AppViewModel: ObservableObject {
     }
     
     public func finishBatchReview() {
+        if let stagingDir = self.currentFaceSwapStagingDir {
+            cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+            self.currentFaceSwapStagingDir = nil
+        }
+        
         let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview")
         try? FileManager.default.removeItem(at: tempPreviewDir)
+        let tempFallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp")
+        try? FileManager.default.removeItem(at: tempFallback)
         
         self.isFaceSwapBatchReviewPresented = false
         self.faceSwapBatchItems = []
@@ -1500,15 +1641,34 @@ public final class AppViewModel: ObservableObject {
         
         switch destination {
         case .sameFolder:
-            let targetDir = result.targetURL.deletingLastPathComponent()
-            let targetBaseName = result.targetURL.deletingPathExtension().lastPathComponent
-            var finalDestURL = targetDir.appendingPathComponent("\(targetBaseName)_swap.heic")
-            var counter = 1
-            while fileManager.fileExists(atPath: finalDestURL.path) {
-                finalDestURL = targetDir.appendingPathComponent("\(targetBaseName)_swap_\(counter).heic")
-                counter += 1
+            let oldURL = result.targetURL
+            let targetDir = oldURL.deletingLastPathComponent()
+            let targetBaseName = oldURL.deletingPathExtension().lastPathComponent
+            let finalDestURL = targetDir.appendingPathComponent("\(targetBaseName).heic")
+            let tempWorkingURL = targetDir.appendingPathComponent("\(targetBaseName)_swap_\(UUID().uuidString.prefix(6)).heic")
+            
+            // 1. Copy from faceswap_temp to temporary working file in targetDir
+            try fileManager.copyItem(at: sourceTempURL, to: tempWorkingURL)
+            
+            // 2. If finalDestURL already exists and is different from oldURL, recycle it
+            if fileManager.fileExists(atPath: finalDestURL.path) && finalDestURL.path != oldURL.path {
+                NSWorkspace.shared.recycle([finalDestURL])
             }
-            try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
+            
+            // 3. Delete the old original file (recycle to Trash)
+            if fileManager.fileExists(atPath: oldURL.path) {
+                NSWorkspace.shared.recycle([oldURL])
+            }
+            
+            // 4. Move tempWorkingURL to finalDestURL
+            if fileManager.fileExists(atPath: finalDestURL.path) {
+                try? fileManager.removeItem(at: finalDestURL)
+            }
+            try fileManager.moveItem(at: tempWorkingURL, to: finalDestURL)
+            
+            // 5. Clean up temporary file from faceswap_temp
+            try? fileManager.removeItem(at: sourceTempURL)
+            
             return finalDestURL
             
         case .swapOutput:
@@ -1526,18 +1686,20 @@ public final class AppViewModel: ObservableObject {
                 counter += 1
             }
             try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
+            try? fileManager.removeItem(at: sourceTempURL)
             return finalDestURL
             
         case .saveAs:
             let savePanel = NSSavePanel()
             savePanel.title = "儲存換臉成果影像"
-            savePanel.nameFieldStringValue = (result.targetURL.deletingPathExtension().lastPathComponent) + "_swap.heic"
+            savePanel.nameFieldStringValue = (result.targetURL.deletingPathExtension().lastPathComponent) + ".heic"
             savePanel.allowedContentTypes = [.heic]
             if savePanel.runModal() == .OK, let selectedURL = savePanel.url {
                 if fileManager.fileExists(atPath: selectedURL.path) {
                     try? fileManager.removeItem(at: selectedURL)
                 }
                 try fileManager.copyItem(at: sourceTempURL, to: selectedURL)
+                try? fileManager.removeItem(at: sourceTempURL)
                 return selectedURL
             } else {
                 throw NSError(domain: "FaceSwap", code: 3, userInfo: [NSLocalizedDescriptionKey: "已取消另存新檔"])
@@ -1550,9 +1712,13 @@ public final class AppViewModel: ObservableObject {
         do {
             let savedURL = try performSaveFaceSwap(result: result, destination: destination)
             try? FileManager.default.removeItem(at: result.previewOutputURL)
+            if let stagingDir = currentFaceSwapStagingDir {
+                cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+                currentFaceSwapStagingDir = nil
+            }
             self.currentFaceSwapResult = nil
             self.isFaceSwapPreviewPresented = false
-            self.showToast("已儲存換臉影像至: \(savedURL.lastPathComponent)")
+            self.showToast("✨ 已刪除舊檔並以換臉成果取代: \(savedURL.lastPathComponent)")
             self.refreshFolderContents()
         } catch {
             showToast("儲存失敗: \(error.localizedDescription)")
@@ -1563,9 +1729,156 @@ public final class AppViewModel: ObservableObject {
         if let result = currentFaceSwapResult {
             try? FileManager.default.removeItem(at: result.previewOutputURL)
         }
+        if let stagingDir = currentFaceSwapStagingDir {
+            cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+            currentFaceSwapStagingDir = nil
+        }
         self.currentFaceSwapResult = nil
         self.isFaceSwapPreviewPresented = false
-        self.showToast("已放棄換臉成果")
+        self.showToast("已放棄換臉成果 (保留原圖)")
+    }
+    
+    // MARK: - FaceSwap Staging Directory Helpers
+    
+    private func resolveFaceSwapStagingDirectory(for targetURLs: [URL]) -> URL {
+        if let firstTarget = targetURLs.first {
+            let parentDir = firstTarget.deletingLastPathComponent()
+            let staging = parentDir.appendingPathComponent("faceswap_temp", isDirectory: true)
+            do {
+                try FileManager.default.createDirectory(at: staging, withIntermediateDirectories: true, attributes: nil)
+                return staging
+            } catch {
+                LoggerManager.shared.log("Failed to create staging directory in target folder: \(error.localizedDescription)", level: .error)
+            }
+        }
+        
+        let fallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp", isDirectory: true)
+        try? FileManager.default.createDirectory(at: fallback, withIntermediateDirectories: true, attributes: nil)
+        return fallback
+    }
+    
+    private func cleanupFaceSwapStagingFolder(stagingDir: URL?) {
+        guard let dir = stagingDir else { return }
+        let fm = FileManager.default
+        if let contents = try? fm.contentsOfDirectory(atPath: dir.path) {
+            let nonHidden = contents.filter { !$0.hasPrefix(".") }
+            if nonHidden.isEmpty {
+                try? fm.removeItem(at: dir)
+            }
+        }
+    }
+    
+    // MARK: - Fast Convert & Save to HEIC (H Key)
+    
+    public func convertSelectedImagesToHEIC() {
+        let targetsToConvert: [ImageItem]
+        if !selectedIndexes.isEmpty {
+            let sorted = Array(selectedIndexes).sorted()
+            targetsToConvert = sorted.compactMap { idx in
+                (idx >= 0 && idx < displayedImages.count) ? displayedImages[idx] : nil
+            }
+        } else if let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count {
+            targetsToConvert = [displayedImages[selIdx]]
+        } else {
+            showToast("請先選取要轉換為 HEIC 的相片")
+            return
+        }
+        
+        guard !targetsToConvert.isEmpty else { return }
+        
+        showToast("⚡️ 正在轉換 \(targetsToConvert.count) 張相片為 HEIC...")
+        
+        Task {
+            var convertedCount = 0
+            var skippedCount = 0
+            var failedCount = 0
+            var lastNewURL: URL? = nil
+            
+            for item in targetsToConvert {
+                let sourceURL = item.url
+                let ext = sourceURL.pathExtension.lowercased()
+                
+                // If already HEIC, skip
+                if ext == "heic" || ext == "heif" {
+                    skippedCount += 1
+                    continue
+                }
+                
+                do {
+                    let newURL = try await convertSingleImageToHEIC(sourceURL: sourceURL)
+                    lastNewURL = newURL
+                    convertedCount += 1
+                } catch {
+                    LoggerManager.shared.log("Failed to convert \(sourceURL.lastPathComponent) to HEIC: \(error.localizedDescription)", level: .error)
+                    failedCount += 1
+                }
+            }
+            
+            await MainActor.run {
+                if convertedCount > 0 {
+                    self.refreshFolderContents()
+                    if targetsToConvert.count == 1, let newURL = lastNewURL {
+                        self.showToast("⚡️ 已轉換為 HEIC 並取代舊檔案: \(newURL.lastPathComponent)")
+                    } else {
+                        self.showToast("⚡️ 已完成 \(convertedCount) 張相片 HEIC 轉換並刪除原檔" + (skippedCount > 0 ? " (跳過 \(skippedCount) 張已是 HEIC)" : ""))
+                    }
+                } else if skippedCount > 0 {
+                    self.showToast("選取的相片已是 HEIC 格式，無需重複轉換")
+                } else if failedCount > 0 {
+                    self.showToast("HEIC 轉換失敗，請檢查檔案權限或格式")
+                }
+            }
+        }
+    }
+    
+    private func convertSingleImageToHEIC(sourceURL: URL, quality: Float = 0.92) async throws -> URL {
+        return try await Task.detached(priority: .userInitiated) {
+            let targetDir = sourceURL.deletingLastPathComponent()
+            let baseName = sourceURL.deletingPathExtension().lastPathComponent
+            let destURL = targetDir.appendingPathComponent("\(baseName).heic")
+            let tempDestURL = targetDir.appendingPathComponent("\(baseName)_conv_\(UUID().uuidString.prefix(6)).heic")
+            
+            guard let imageSource = CGImageSourceCreateWithURL(sourceURL as CFURL, nil) else {
+                throw NSError(domain: "HEICConversion", code: 1, userInfo: [NSLocalizedDescriptionKey: "無法讀取原始影像檔案: \(sourceURL.lastPathComponent)"])
+            }
+            
+            let sourceProps = (CGImageSourceCopyPropertiesAtIndex(imageSource, 0, nil) as? [CFString: Any]) ?? [:]
+            
+            guard let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+                throw NSError(domain: "HEICConversion", code: 2, userInfo: [NSLocalizedDescriptionKey: "無法解碼影像內容: \(sourceURL.lastPathComponent)"])
+            }
+            
+            guard let destination = CGImageDestinationCreateWithURL(tempDestURL as CFURL, UTType.heic.identifier as CFString, 1, nil) else {
+                throw NSError(domain: "HEICConversion", code: 3, userInfo: [NSLocalizedDescriptionKey: "系統不支援 HEIC 影像編碼"])
+            }
+            
+            var options: [CFString: Any] = sourceProps
+            options[kCGImageDestinationLossyCompressionQuality] = quality as CFNumber
+            
+            CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+            
+            guard CGImageDestinationFinalize(destination) else {
+                try? FileManager.default.removeItem(at: tempDestURL)
+                throw NSError(domain: "HEICConversion", code: 4, userInfo: [NSLocalizedDescriptionKey: "HEIC 編碼寫入失敗"])
+            }
+            
+            // If destURL already exists and is different from sourceURL, recycle it
+            if FileManager.default.fileExists(atPath: destURL.path) && destURL.path != sourceURL.path {
+                NSWorkspace.shared.recycle([destURL])
+            }
+            
+            // Move temp file to destURL
+            if FileManager.default.fileExists(atPath: destURL.path) {
+                try? FileManager.default.removeItem(at: destURL)
+            }
+            try FileManager.default.moveItem(at: tempDestURL, to: destURL)
+            
+            // Delete old file by safely recycling to macOS Trash
+            NSWorkspace.shared.recycle([sourceURL])
+            
+            LoggerManager.shared.log("Converted \(sourceURL.lastPathComponent) to HEIC: \(destURL.lastPathComponent) and trashed original", level: .info)
+            return destURL
+        }.value
     }
 }
 

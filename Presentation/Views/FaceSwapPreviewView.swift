@@ -266,7 +266,7 @@ public struct FaceSwapPreviewView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "trash")
                         .font(.system(size: 12))
-                    Text("放棄成果 (不儲存)")
+                    Text("放棄成果 / 保留原圖 (DEL / Esc)")
                         .font(.system(size: 12, weight: .semibold))
                 }
                 .foregroundColor(LuminaTheme.Colors.neonCoral)
@@ -308,7 +308,7 @@ public struct FaceSwapPreviewView: View {
             HStack(spacing: 8) {
                 // Save As... (Picker)
                 Menu {
-                    Button("儲存於相片同資料夾 (_swap.heic)") {
+                    Button("儲存並取代原檔 (.heic)") {
                         viewModel.saveFaceSwapResult(destination: .sameFolder)
                     }
                     Button("儲存於 swap/output 目錄") {
@@ -343,7 +343,7 @@ public struct FaceSwapPreviewView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 13, weight: .bold))
-                        Text("確定儲存換臉影像")
+                        Text("儲存並取代原檔 (Enter / S)")
                             .font(.system(size: 13, weight: .bold))
                     }
                     .foregroundColor(.white)

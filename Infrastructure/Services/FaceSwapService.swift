@@ -282,6 +282,7 @@ public final class FaceSwapService: @unchecked Sendable {
         sourceFaceURL: URL?,
         blend: Double = 60.0,
         apiUrl: String? = nil,
+        stagingDirectoryURL: URL? = nil,
         onProgress: @escaping @Sendable (String) -> Void
     ) async throws -> FaceSwapResult {
         let results = try await runBatchFaceSwap(
@@ -289,6 +290,7 @@ public final class FaceSwapService: @unchecked Sendable {
             sourceFaceURL: sourceFaceURL,
             blend: blend,
             apiUrl: apiUrl,
+            stagingDirectoryURL: stagingDirectoryURL,
             onProgress: { _, _, log in
                 onProgress(log)
             },
@@ -312,6 +314,7 @@ public final class FaceSwapService: @unchecked Sendable {
         sourceFaceURL: URL?,
         blend: Double = 60.0,
         apiUrl: String? = nil,
+        stagingDirectoryURL: URL? = nil,
         onProgress: @escaping @Sendable (Int, Int, String) -> Void,
         onItemCompleted: @escaping @Sendable (FaceSwapResult) -> Void,
         onItemFailed: @escaping @Sendable (URL, String) -> Void
@@ -331,14 +334,21 @@ public final class FaceSwapService: @unchecked Sendable {
         
         let configPath = swapDir.appendingPathComponent("appsettings.json").path
         
-        // Prepare preview temporary output directory
-        let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview", isDirectory: true)
-        try? FileManager.default.createDirectory(at: tempPreviewDir, withIntermediateDirectories: true, attributes: nil)
+        // Prepare preview temporary output directory (faceswap_temp)
+        let outputDir: URL
+        if let customStaging = stagingDirectoryURL {
+            outputDir = customStaging
+        } else if let firstTarget = targetURLs.first {
+            outputDir = firstTarget.deletingLastPathComponent().appendingPathComponent("faceswap_temp", isDirectory: true)
+        } else {
+            outputDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp", isDirectory: true)
+        }
+        try? FileManager.default.createDirectory(at: outputDir, withIntermediateDirectories: true, attributes: nil)
         
         var arguments = [
             scriptPath,
             "-c", configPath,
-            "-o", tempPreviewDir.path,
+            "-o", outputDir.path,
             "--face-enhancer-blend", String(format: "%.1f", blend),
             "-w", "Y"
         ]

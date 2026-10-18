@@ -25,19 +25,39 @@ public struct ImageGridView: View {
             }
             
             // MARK: - Photo Grid Content Area
-            ScrollView {
-                if viewModel.displayedImages.isEmpty {
-                    emptyStateView
-                } else {
-                    LazyVGrid(columns: gridColumns, spacing: 16) {
-                        ForEach(0..<viewModel.displayedImages.count, id: \.self) { index in
-                            photoCard(for: index)
+            ZStack {
+                KeyCaptureView()
+                    .frame(width: 0, height: 0)
+                    .opacity(0)
+                    .allowsHitTesting(false)
+                
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        if viewModel.displayedImages.isEmpty {
+                            emptyStateView
+                        } else {
+                            LazyVGrid(columns: gridColumns, spacing: 16) {
+                                ForEach(0..<viewModel.displayedImages.count, id: \.self) { index in
+                                    photoCard(for: index)
+                                        .id(index)
+                                }
+                            }
+                            .padding(16)
                         }
                     }
-                    .padding(16)
+                    .background(LuminaTheme.Colors.bgCanvas)
+                    .simultaneousGesture(TapGesture().onEnded {
+                        NSApp.keyWindow?.makeFirstResponder(nil)
+                    })
+                    .onChange(of: viewModel.selectedImageIndex) { _, newIndex in
+                        if let idx = newIndex {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                proxy.scrollTo(idx, anchor: .center)
+                            }
+                        }
+                    }
                 }
             }
-            .background(LuminaTheme.Colors.bgCanvas)
         }
     }
     
@@ -312,6 +332,30 @@ public struct ImageGridView: View {
                 .buttonStyle(PlainButtonStyle())
             }
             
+            // Fast Convert to HEIC (H)
+            Button(action: {
+                viewModel.convertSelectedImagesToHEIC()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "bolt.badge.automatic.fill")
+                    Text("轉為 HEIC")
+                    Text("H")
+                        .font(.system(size: 8, weight: .bold))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.25)))
+                }
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.12))
+                        .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.35), lineWidth: 0.75))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
             Spacer()
             
             // Clear Selection
@@ -478,14 +522,6 @@ public struct ImageGridView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             }
             .frame(height: CGFloat(viewModel.thumbnailScale * 0.85))
-            .onTapGesture {
-                viewModel.selectedImageIndex = index
-            }
-            .simultaneousGesture(TapGesture(count: 2).onEnded {
-                viewModel.selectedImageIndex = index
-                viewModel.isDetailActive = true
-                viewModel.calculateHistogramForSelected()
-            })
             
             // Filename & Metadata Footer
             VStack(alignment: .leading, spacing: 2) {
@@ -518,6 +554,19 @@ public struct ImageGridView: View {
             }
             .padding(.horizontal, 3)
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            NSApp.keyWindow?.makeFirstResponder(nil)
+            viewModel.selectedImageIndex = index
+            viewModel.selectedIndexes = [index]
+        }
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            NSApp.keyWindow?.makeFirstResponder(nil)
+            viewModel.selectedImageIndex = index
+            viewModel.selectedIndexes = [index]
+            viewModel.isDetailActive = true
+            viewModel.calculateHistogramForSelected()
+        })
         .scaleEffect(isHovered ? 1.015 : 1.0)
         .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isHovered)
         .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isSelected)

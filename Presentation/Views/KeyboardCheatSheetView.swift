@@ -41,8 +41,9 @@ public struct KeyboardCheatSheetView: View {
                 ShortcutItem(keys: ["1", "–", "5"], description: "設定 1 至 5 星級評等"),
                 ShortcutItem(keys: ["0"], description: "清除星級評等 (未評級)"),
                 ShortcutItem(keys: ["T"], description: "切換標記 / 取消標記 (Flagged)"),
+                ShortcutItem(keys: ["H"], description: "一鍵轉存為 HEIC 並取代刪除原檔"),
                 ShortcutItem(keys: ["M"], description: "搬移至目標資料夾 (Culling Move)"),
-                ShortcutItem(keys: ["⌘", "Delete"], description: "安全移至資源回收桶 (Trash)")
+                ShortcutItem(keys: ["DEL / Delete", "⌘ Delete"], description: "安全移至資源回收桶 (Trash)")
             ]
         ),
         ShortcutSection(
@@ -56,6 +57,16 @@ public struct KeyboardCheatSheetView: View {
                 ShortcutItem(keys: ["⌘", "C"], description: "複製當前照片之調光參數"),
                 ShortcutItem(keys: ["⌘", "V"], description: "貼上並同步調光參數至選取照片"),
                 ShortcutItem(keys: ["S"], description: "開啟 AI 換臉工作台 (FaceFusion API)")
+            ]
+        ),
+        ShortcutSection(
+            title: "AI 換臉批次審查 (FaceSwap Review)",
+            icon: "sparkles.rectangle.stack",
+            items: [
+                ShortcutItem(keys: ["◀", "▶"], description: "上一張 / 下一張換臉照片"),
+                ShortcutItem(keys: ["Enter", "S"], description: "儲存換臉影像並取代原檔 (Save)"),
+                ShortcutItem(keys: ["DEL", "X", "Space"], description: "保持原圖 / 清除暫存 (Keep Original)"),
+                ShortcutItem(keys: ["Esc"], description: "完成並關閉審查")
             ]
         ),
         ShortcutSection(

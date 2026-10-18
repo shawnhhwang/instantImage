@@ -32,7 +32,7 @@ public struct FaceSwapResult: Identifiable, Sendable {
 }
 
 public enum FaceSwapSaveDestination: String, CaseIterable, Identifiable {
-    case sameFolder = "儲存於相片同資料夾"
+    case sameFolder = "儲存並取代原檔 (刪除舊檔)"
     case swapOutput = "儲存於 swap/output"
     case saveAs = "另存新檔 (選擇資料夾)..."
     

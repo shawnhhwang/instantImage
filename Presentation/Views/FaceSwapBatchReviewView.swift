@@ -525,7 +525,7 @@ public struct FaceSwapBatchReviewView: View {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("保持原圖 (略過)")
                             .font(.system(size: 13, weight: .bold))
-                        Text("快捷鍵: 空白鍵 / X")
+                        Text("快捷鍵: DEL / X / 空白鍵")
                             .font(.system(size: 9))
                             .opacity(0.7)
                     }
@@ -553,9 +553,9 @@ public struct FaceSwapBatchReviewView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 14, weight: .bold))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("儲存換臉影像")
+                        Text("儲存並取代原檔")
                             .font(.system(size: 13, weight: .bold))
-                        Text("快捷鍵: Enter / S")
+                        Text("刪除舊檔案 • 快捷鍵: Enter / S")
                             .font(.system(size: 9))
                             .opacity(0.85)
                     }
