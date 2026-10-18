@@ -147,14 +147,7 @@ public struct FaceSwapSetupView: View {
             HStack(spacing: 8) {
                 ForEach(FaceSwapBatchTargetMode.allCases) { mode in
                     Button(action: {
-                        viewModel.faceSwapBatchTargetMode = mode
-                        if mode == .folder && viewModel.faceSwapBatchTargets.isEmpty {
-                            if let current = viewModel.selectedFolder {
-                                viewModel.faceSwapBatchFolderURL = current
-                                let validExts: Set<String> = ["jpg", "jpeg", "png", "webp", "heic", "heif"]
-                                viewModel.faceSwapBatchTargets = viewModel.images.map { $0.url }.filter { validExts.contains($0.pathExtension.lowercased()) }
-                            }
-                        }
+                        viewModel.setFaceSwapTargetMode(mode)
                     }) {
                         HStack(spacing: 6) {
                             switch mode {
@@ -238,7 +231,7 @@ public struct FaceSwapSetupView: View {
                 }
                 
             case .folder:
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
                             HStack(spacing: 6) {
@@ -248,7 +241,7 @@ public struct FaceSwapSetupView: View {
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(LuminaTheme.Colors.textPrimary)
                                 
-                                LuminaBadge("共 \(viewModel.faceSwapBatchTargets.count) 張相片", color: LuminaTheme.Colors.mintEmerald)
+                                LuminaBadge("已選 \(viewModel.faceSwapBatchTargets.count) 張相片", color: viewModel.faceSwapBatchTargets.isEmpty ? LuminaTheme.Colors.neonCoral : LuminaTheme.Colors.mintEmerald)
                             }
                             
                             if let folder = viewModel.faceSwapBatchFolderURL {
@@ -262,12 +255,51 @@ public struct FaceSwapSetupView: View {
                         
                         Spacer()
                         
+                        // Select All Folder Photos Button
+                        Button(action: {
+                            viewModel.selectAllFolderTargets()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("全選資料夾相片")
+                            }
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.mintEmerald)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(LuminaTheme.Colors.mintEmerald.opacity(0.12))
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(viewModel.isFaceSwapProcessing)
+                        
+                        // Deselect All Button
+                        if !viewModel.faceSwapBatchTargets.isEmpty {
+                            Button(action: {
+                                viewModel.deselectAllFolderTargets()
+                            }) {
+                                Text("清空選取")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 7)
+                                            .fill(Color.black.opacity(0.04))
+                                    )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .disabled(viewModel.isFaceSwapProcessing)
+                        }
+                        
                         Button(action: {
                             viewModel.chooseCustomBatchFolder()
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "folder.badge.gearshape")
-                                Text("選擇其他資料夾...")
+                                Text("其他資料夾...")
                             }
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(LuminaTheme.Colors.electricIndigo)
@@ -282,10 +314,49 @@ public struct FaceSwapSetupView: View {
                         .disabled(viewModel.isFaceSwapProcessing)
                     }
                     
+                    // Horizontal scrollable targets preview
                     if !viewModel.faceSwapBatchTargets.isEmpty {
-                        Text("將批次處理此資料夾內的所有相片，轉換完成後提供逐張比對審查佇列。")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(viewModel.faceSwapBatchTargets, id: \.path) { targetURL in
+                                    ZStack(alignment: .topTrailing) {
+                                        if let cgImage = viewModel.thumbnails[targetURL.path] {
+                                            Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 44, height: 44)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(Color.black.opacity(0.06))
+                                                .frame(width: 44, height: 44)
+                                                .overlay(Image(systemName: "photo").font(.system(size: 12)).foregroundColor(.gray))
+                                        }
+                                        
+                                        // Toggle remove chip
+                                        Button(action: {
+                                            viewModel.toggleBatchTargetURL(targetURL)
+                                        }) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(LuminaTheme.Colors.mintEmerald)
+                                                .background(Circle().fill(Color.white))
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .offset(x: 3, y: -3)
+                                    }
+                                    .help(targetURL.lastPathComponent)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 2)
+                        }
+                        .frame(height: 52)
+                    } else {
+                        Text("⚠️ 目前尚未勾選任何相片，請點擊上方「全選資料夾相片」或選擇相片。")
                             .font(.system(size: 11))
-                            .foregroundColor(LuminaTheme.Colors.textSecondary)
+                            .foregroundColor(LuminaTheme.Colors.neonCoral)
+                            .padding(.vertical, 4)
                     }
                 }
                 .padding(12)
@@ -296,20 +367,83 @@ public struct FaceSwapSetupView: View {
                 )
                 
             case .selected:
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        HStack(spacing: 6) {
-                            Image(systemName: "checkmark.rectangle.stack.fill")
-                                .foregroundColor(LuminaTheme.Colors.electricIndigo)
-                            Text("已勾選 \(viewModel.faceSwapBatchTargets.count) 張相片")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(LuminaTheme.Colors.textPrimary)
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "checkmark.rectangle.stack.fill")
+                                    .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                                Text("已選取 \(viewModel.faceSwapBatchTargets.count) 張相片")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(LuminaTheme.Colors.textPrimary)
+                            }
+                            Text("針對畫面上選取的相片執行 AI 換臉與逐張比對")
+                                .font(.system(size: 11))
+                                .foregroundColor(LuminaTheme.Colors.textSecondary)
                         }
-                        Text("針對畫面中多選的相片執行 AI 換臉與逐張比對")
-                            .font(.system(size: 11))
-                            .foregroundColor(LuminaTheme.Colors.textSecondary)
+                        
+                        Spacer()
+                        
+                        // Select All button
+                        Button(action: {
+                            viewModel.selectAllImages()
+                            viewModel.setFaceSwapTargetMode(.selected)
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "circle.grid.2x2")
+                                Text("全選相簿相片 (⌘A)")
+                            }
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 10)
+                            .background(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .fill(LuminaTheme.Colors.cyanAccent.opacity(0.12))
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(viewModel.isFaceSwapProcessing)
                     }
-                    Spacer()
+                    
+                    // Selected thumbnails preview
+                    if !viewModel.faceSwapBatchTargets.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(viewModel.faceSwapBatchTargets, id: \.path) { targetURL in
+                                    ZStack(alignment: .topTrailing) {
+                                        if let cgImage = viewModel.thumbnails[targetURL.path] {
+                                            Image(nsImage: NSImage(cgImage: cgImage, size: .zero))
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                                .frame(width: 44, height: 44)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        } else {
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(Color.black.opacity(0.06))
+                                                .frame(width: 44, height: 44)
+                                                .overlay(Image(systemName: "photo").font(.system(size: 12)).foregroundColor(.gray))
+                                        }
+                                        
+                                        Button(action: {
+                                            viewModel.toggleBatchTargetURL(targetURL)
+                                        }) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(LuminaTheme.Colors.mintEmerald)
+                                                .background(Circle().fill(Color.white))
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
+                                        .offset(x: 3, y: -3)
+                                    }
+                                    .help(targetURL.lastPathComponent)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 2)
+                        }
+                        .frame(height: 52)
+                    }
                 }
                 .padding(12)
                 .background(

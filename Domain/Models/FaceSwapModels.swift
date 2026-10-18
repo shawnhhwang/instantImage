@@ -41,7 +41,7 @@ public enum FaceSwapSaveDestination: String, CaseIterable, Identifiable {
 
 public enum FaceSwapDecision: String, CaseIterable, Identifiable, Sendable {
     case pending = "待審查"
-    case saved = "已儲存換臉"
+    case saved = "儲存取代原檔"
     case keptOriginal = "保持原圖"
     
     public var id: String { rawValue }

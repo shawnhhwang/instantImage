@@ -1058,6 +1058,10 @@ public final class AppViewModel: ObservableObject {
             deleteSelectedImage()
         case KeyCode.hKey:
             convertSelectedImagesToHEIC()
+        case 0: // A Key (Cmd+A: Select All Images)
+            if event.modifierFlags.contains(.command) && !isDetailActive {
+                selectAllImages()
+            }
         default:
             break
         }
@@ -1285,13 +1289,42 @@ public final class AppViewModel: ObservableObject {
     public func toggleSelectIndex(_ index: Int) {
         if selectedIndexes.contains(index) {
             selectedIndexes.remove(index)
+            if selectedImageIndex == index {
+                selectedImageIndex = selectedIndexes.sorted().first
+            }
         } else {
             selectedIndexes.insert(index)
+            selectedImageIndex = index
         }
     }
     
     public func clearSelectedIndexes() {
         selectedIndexes.removeAll()
+    }
+    
+    public func selectAllImages() {
+        guard !displayedImages.isEmpty else { return }
+        selectedIndexes = Set(0..<displayedImages.count)
+        if selectedImageIndex == nil {
+            selectedImageIndex = 0
+        }
+        showToast("已全選 \(displayedImages.count) 張相片 (⌘A)")
+    }
+    
+    public func deselectAllImages() {
+        selectedIndexes.removeAll()
+        selectedImageIndex = nil
+        showToast("已取消選取相片")
+    }
+    
+    public func selectRange(from start: Int, to end: Int) {
+        guard !displayedImages.isEmpty else { return }
+        let low = max(0, min(start, end))
+        let high = min(displayedImages.count - 1, max(start, end))
+        for i in low...high {
+            selectedIndexes.insert(i)
+        }
+        selectedImageIndex = end
     }
     
     // MARK: - FaceSwap Actions
@@ -1400,6 +1433,71 @@ public final class AppViewModel: ObservableObject {
                 }
                 self.faceSwapBatchTargets = found.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
             }
+        }
+    }
+    
+    public func setFaceSwapTargetMode(_ mode: FaceSwapBatchTargetMode) {
+        self.faceSwapBatchTargetMode = mode
+        switch mode {
+        case .single:
+            if let target = faceSwapTargetImage ?? selectedImage {
+                self.faceSwapTargetImage = target
+                self.faceSwapBatchTargets = [target.url]
+            } else if let first = images.first {
+                self.faceSwapTargetImage = first
+                self.faceSwapBatchTargets = [first.url]
+            }
+        case .folder:
+            if faceSwapBatchFolderURL == nil {
+                faceSwapBatchFolderURL = selectedFolder
+            }
+            selectAllFolderTargets()
+        case .selected:
+            let selectedURLs = selectedIndexes.sorted().compactMap { idx -> URL? in
+                guard idx < displayedImages.count else { return nil }
+                return displayedImages[idx].url
+            }
+            if !selectedURLs.isEmpty {
+                self.faceSwapBatchTargets = selectedURLs
+            } else if let single = selectedImage {
+                self.faceSwapBatchTargets = [single.url]
+            }
+        }
+    }
+    
+    public func selectAllFolderTargets() {
+        let validExts: Set<String> = ["jpg", "jpeg", "png", "webp", "heic", "heif", "dng", "tiff"]
+        let folder = faceSwapBatchFolderURL ?? selectedFolder
+        guard let folder = folder else { return }
+        
+        if folder.path == selectedFolder?.path {
+            let folderImages = self.images.map { $0.url }.filter { validExts.contains($0.pathExtension.lowercased()) }
+            self.faceSwapBatchTargets = folderImages
+        } else {
+            if let enumerator = FileManager.default.enumerator(at: folder, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles, .skipsPackageDescendants]) {
+                var found: [URL] = []
+                for case let fileURL as URL in enumerator {
+                    if validExts.contains(fileURL.pathExtension.lowercased()) {
+                        found.append(fileURL)
+                    }
+                }
+                self.faceSwapBatchTargets = found.sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+            }
+        }
+        showToast("已全選資料夾內 \(faceSwapBatchTargets.count) 張相片")
+    }
+    
+    public func deselectAllFolderTargets() {
+        self.faceSwapBatchTargets.removeAll()
+        showToast("已清空換臉相片選取")
+    }
+    
+    public func toggleBatchTargetURL(_ url: URL) {
+        if let idx = faceSwapBatchTargets.firstIndex(where: { $0.path == url.path }) {
+            faceSwapBatchTargets.remove(at: idx)
+        } else {
+            faceSwapBatchTargets.append(url)
+            faceSwapBatchTargets.sort { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
         }
     }
     
@@ -1547,56 +1645,33 @@ public final class AppViewModel: ObservableObject {
     
     public func decideBatchItem(at index: Int, decision: FaceSwapDecision, destination: FaceSwapSaveDestination? = nil) {
         guard index >= 0 && index < faceSwapBatchItems.count else { return }
-        let saveDest = destination ?? faceSwapBatchSaveDestination
+        faceSwapBatchItems[index].decision = decision
         
-        var item = faceSwapBatchItems[index]
-        item.decision = decision
-        
-        if decision == .saved, let result = item.result {
-            do {
-                let savedURL = try performSaveFaceSwap(result: result, destination: saveDest)
-                item.savedURL = savedURL
-                showToast("✨ 已刪除舊檔並以換臉成果取代: \(savedURL.lastPathComponent)")
-            } catch {
-                showToast("儲存失敗: \(error.localizedDescription)")
-            }
+        let item = faceSwapBatchItems[index]
+        if decision == .saved {
+            showToast("已標記儲存取代: \(item.filename)")
         } else if decision == .keptOriginal {
-            if let result = item.result {
-                try? FileManager.default.removeItem(at: result.previewOutputURL)
-            }
-            showToast("已保留原圖: \(item.filename)")
+            showToast("已標記保持原圖: \(item.filename)")
         }
         
-        faceSwapBatchItems[index] = item
-        nextBatchReviewItem()
+        if faceSwapBatchReviewIndex < faceSwapBatchItems.count - 1 {
+            nextBatchReviewItem()
+        }
     }
     
     public func decideAllBatchItems(decision: FaceSwapDecision, destination: FaceSwapSaveDestination? = nil) {
-        let saveDest = destination ?? faceSwapBatchSaveDestination
         var count = 0
-        
         for idx in 0..<faceSwapBatchItems.count {
-            var item = faceSwapBatchItems[idx]
-            guard item.decision == .pending else { continue }
-            item.decision = decision
-            if decision == .saved, let result = item.result {
-                if let savedURL = try? performSaveFaceSwap(result: result, destination: saveDest) {
-                    item.savedURL = savedURL
-                    count += 1
-                }
-            } else if decision == .keptOriginal {
-                if let result = item.result {
-                    try? FileManager.default.removeItem(at: result.previewOutputURL)
-                }
+            if faceSwapBatchItems[idx].decision == .pending {
+                faceSwapBatchItems[idx].decision = decision
                 count += 1
             }
-            faceSwapBatchItems[idx] = item
         }
         
         if decision == .saved {
-            showToast("✨ 已批次儲存 \(count) 張換臉成果並取代舊檔")
+            showToast("✨ 已將 \(count) 張待決定相片標記為「儲存取代原檔」")
         } else {
-            showToast("已批次保留原圖 \(count) 張相片")
+            showToast("已將 \(count) 張待決定相片標記為「保持原圖」")
         }
     }
     
@@ -1612,7 +1687,52 @@ public final class AppViewModel: ObservableObject {
         }
     }
     
-    public func finishBatchReview() {
+    public func applyBatchDecisionsAndFinish() {
+        let itemsToSave = faceSwapBatchItems.filter { $0.decision == .saved && $0.result != nil }
+        let saveDest = faceSwapBatchSaveDestination
+        var savedCount = 0
+        var failCount = 0
+        
+        for item in itemsToSave {
+            guard let result = item.result else { continue }
+            do {
+                _ = try performSaveFaceSwap(result: result, destination: saveDest)
+                savedCount += 1
+            } catch {
+                LoggerManager.shared.log("Failed to save FaceSwap for \(item.filename): \(error.localizedDescription)", level: .error)
+                failCount += 1
+            }
+        }
+        
+        let keptCount = faceSwapBatchItems.filter { $0.decision == .keptOriginal || $0.decision == .pending }.count
+        
+        if let stagingDir = self.currentFaceSwapStagingDir {
+            cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+            self.currentFaceSwapStagingDir = nil
+        }
+        
+        let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview")
+        try? FileManager.default.removeItem(at: tempPreviewDir)
+        let tempFallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp")
+        try? FileManager.default.removeItem(at: tempFallback)
+        
+        self.isFaceSwapBatchReviewPresented = false
+        self.faceSwapBatchItems = []
+        self.refreshFolderContents()
+        
+        if failCount > 0 {
+            showToast("完成審查: 已取代 \(savedCount) 張，失敗 \(failCount) 張 (原檔保留 \(keptCount) 張)")
+        } else {
+            showToast("🎉 批次審查完成！已取代 \(savedCount) 張相片，保留 \(keptCount) 張原檔")
+        }
+    }
+    
+    public func finishBatchReview(applyDecisions: Bool = false) {
+        if applyDecisions {
+            applyBatchDecisionsAndFinish()
+            return
+        }
+        
         if let stagingDir = self.currentFaceSwapStagingDir {
             cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
             self.currentFaceSwapStagingDir = nil
@@ -1650,24 +1770,23 @@ public final class AppViewModel: ObservableObject {
             // 1. Copy from faceswap_temp to temporary working file in targetDir
             try fileManager.copyItem(at: sourceTempURL, to: tempWorkingURL)
             
-            // 2. If finalDestURL already exists and is different from oldURL, recycle it
-            if fileManager.fileExists(atPath: finalDestURL.path) && finalDestURL.path != oldURL.path {
-                NSWorkspace.shared.recycle([finalDestURL])
+            // 2. Atomic replacement handling collision with existing .heic or old file
+            if oldURL.path.lowercased() == finalDestURL.path.lowercased() {
+                // The old file was already .heic! Rename old file to holding trash path, then move new .heic into place
+                let holdingTrashURL = targetDir.appendingPathComponent("\(targetBaseName)_orig_trash_\(UUID().uuidString.prefix(6)).heic")
+                try fileManager.moveItem(at: oldURL, to: holdingTrashURL)
+                try fileManager.moveItem(at: tempWorkingURL, to: finalDestURL)
+                NSWorkspace.shared.recycle([holdingTrashURL])
+            } else {
+                // The old file has a different extension (e.g. .jpg, .png)
+                if fileManager.fileExists(atPath: finalDestURL.path) {
+                    try? fileManager.removeItem(at: finalDestURL)
+                }
+                try fileManager.moveItem(at: tempWorkingURL, to: finalDestURL)
+                if fileManager.fileExists(atPath: oldURL.path) {
+                    NSWorkspace.shared.recycle([oldURL])
+                }
             }
-            
-            // 3. Delete the old original file (recycle to Trash)
-            if fileManager.fileExists(atPath: oldURL.path) {
-                NSWorkspace.shared.recycle([oldURL])
-            }
-            
-            // 4. Move tempWorkingURL to finalDestURL
-            if fileManager.fileExists(atPath: finalDestURL.path) {
-                try? fileManager.removeItem(at: finalDestURL)
-            }
-            try fileManager.moveItem(at: tempWorkingURL, to: finalDestURL)
-            
-            // 5. Clean up temporary file from faceswap_temp
-            try? fileManager.removeItem(at: sourceTempURL)
             
             return finalDestURL
             
@@ -1686,7 +1805,6 @@ public final class AppViewModel: ObservableObject {
                 counter += 1
             }
             try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
-            try? fileManager.removeItem(at: sourceTempURL)
             return finalDestURL
             
         case .saveAs:
@@ -1699,7 +1817,6 @@ public final class AppViewModel: ObservableObject {
                     try? fileManager.removeItem(at: selectedURL)
                 }
                 try fileManager.copyItem(at: sourceTempURL, to: selectedURL)
-                try? fileManager.removeItem(at: sourceTempURL)
                 return selectedURL
             } else {
                 throw NSError(domain: "FaceSwap", code: 3, userInfo: [NSLocalizedDescriptionKey: "已取消另存新檔"])

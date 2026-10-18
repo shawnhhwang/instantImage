@@ -133,6 +133,31 @@ public struct ImageGridView: View {
                 
                 Spacer()
                 
+                // Select All (Cmd+A) / Deselect All Button
+                Button(action: {
+                    if viewModel.selectedIndexes.count == viewModel.displayedImages.count && !viewModel.displayedImages.isEmpty {
+                        viewModel.deselectAllImages()
+                    } else {
+                        viewModel.selectAllImages()
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.selectedIndexes.count == viewModel.displayedImages.count && !viewModel.displayedImages.isEmpty ? "checkmark.circle.fill" : "circle.grid.2x2")
+                            .font(.system(size: 10))
+                        Text(viewModel.selectedIndexes.count == viewModel.displayedImages.count && !viewModel.displayedImages.isEmpty ? "取消全選" : "全選 (⌘A)")
+                            .font(.system(size: 10.5, weight: .bold))
+                    }
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 9)
+                    .background(
+                        Capsule()
+                            .fill(LuminaTheme.Colors.cyanAccent.opacity(0.12))
+                            .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.35), lineWidth: 0.75))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                
                 // Total Count HUD Chip
                 HStack(spacing: 4) {
                     Text("顯示 \(viewModel.displayedImages.count)")
@@ -358,6 +383,21 @@ public struct ImageGridView: View {
             
             Spacer()
             
+            // Select All (Cmd+A) in Batch Island
+            if viewModel.selectedIndexes.count < viewModel.displayedImages.count {
+                Button(action: {
+                    viewModel.selectAllImages()
+                }) {
+                    Text("全選所有 (⌘A)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.12)))
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+            
             // Clear Selection
             Button(action: {
                 viewModel.clearSelectedIndexes()
@@ -557,8 +597,16 @@ public struct ImageGridView: View {
         .contentShape(Rectangle())
         .onTapGesture {
             NSApp.keyWindow?.makeFirstResponder(nil)
-            viewModel.selectedImageIndex = index
-            viewModel.selectedIndexes = [index]
+            let flags = NSEvent.modifierFlags
+            if flags.contains(.command) {
+                viewModel.toggleSelectIndex(index)
+            } else if flags.contains(.shift) {
+                let from = viewModel.selectedImageIndex ?? index
+                viewModel.selectRange(from: from, to: index)
+            } else {
+                viewModel.selectedImageIndex = index
+                viewModel.selectedIndexes = [index]
+            }
         }
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             NSApp.keyWindow?.makeFirstResponder(nil)

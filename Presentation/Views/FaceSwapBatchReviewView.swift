@@ -72,6 +72,41 @@ public struct FaceSwapBatchReviewView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 
+                // Completion Alert Banner
+                if pendingCount == 0 && totalCount > 0 {
+                    HStack(spacing: 14) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 15))
+                            .foregroundColor(LuminaTheme.Colors.mintEmerald)
+                        
+                        Text("🎉 所有相片已審查完成！已標記取代 \(savedCount) 張，保持原圖 \(keptOriginalCount) 張。")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.textPrimary)
+                        
+                        Spacer()
+                        
+                        Button(action: {
+                            viewModel.applyBatchDecisionsAndFinish()
+                        }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: "checkmark.circle.fill")
+                                Text("立即套用取代並完成審查")
+                            }
+                            .font(.system(size: 11.5, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 14)
+                            .background(Capsule().fill(LuminaTheme.Colors.mintEmerald))
+                            .shadow(color: LuminaTheme.Colors.mintEmerald.opacity(0.35), radius: 6)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 8)
+                    .background(Color.white.opacity(0.95))
+                    .overlay(Rectangle().fill(LuminaTheme.Colors.mintEmerald.opacity(0.3)).frame(height: 1), alignment: .top)
+                }
+                
                 Divider().background(LuminaTheme.Colors.borderSubtle)
                 
                 // 4. Bottom Decision Deck (Keep Original vs Save Swapped)
@@ -86,26 +121,40 @@ public struct FaceSwapBatchReviewView: View {
     // MARK: - 1. Top Navigation Bar
     private var topNavigationBar: some View {
         HStack(spacing: 14) {
-            // Close / Finish button
+            // Apply Decisions & Finish button
             Button(action: {
-                viewModel.finishBatchReview()
+                viewModel.applyBatchDecisionsAndFinish()
             }) {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13, weight: .bold))
-                    Text("完成審查")
+                    Text(savedCount > 0 ? "完成審查並套用取代 (\(savedCount) 張)" : "完成審查 (保持原圖)")
                         .font(.system(size: 12, weight: .bold))
                 }
-                .foregroundColor(LuminaTheme.Colors.textPrimary)
+                .foregroundColor(savedCount > 0 ? .white : LuminaTheme.Colors.textPrimary)
                 .padding(.vertical, 7)
                 .padding(.horizontal, 14)
                 .background(
                     Capsule()
-                        .fill(Color.white)
-                        .overlay(Capsule().stroke(Color.black.opacity(0.12), lineWidth: 1))
+                        .fill(savedCount > 0 ? LuminaTheme.Colors.mintEmerald : Color.white)
+                        .overlay(Capsule().stroke(Color.black.opacity(savedCount > 0 ? 0 : 0.12), lineWidth: 1))
                 )
+                .shadow(color: savedCount > 0 ? LuminaTheme.Colors.mintEmerald.opacity(0.3) : Color.clear, radius: 4)
             }
             .buttonStyle(PlainButtonStyle())
+            
+            // Close / Cancel without applying
+            Button(action: {
+                viewModel.finishBatchReview(applyDecisions: false)
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textSecondary)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(Color.black.opacity(0.05)))
+            }
+            .buttonStyle(PlainButtonStyle())
+            .help("關閉審查 (不套用取代)")
             
             // Current photo title & counter
             HStack(spacing: 8) {
@@ -131,7 +180,7 @@ public struct FaceSwapBatchReviewView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(LuminaTheme.Colors.mintEmerald)
-                    Text("已儲存: \(savedCount)")
+                    Text("標記儲存: \(savedCount)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(LuminaTheme.Colors.textPrimary)
                 }
@@ -191,15 +240,15 @@ public struct FaceSwapBatchReviewView: View {
             
             // Batch Actions Dropdown
             Menu {
+                Button("全部標記為儲存取代原檔 (待決定相片)") {
+                    viewModel.decideAllBatchItems(decision: .saved)
+                }
                 Button("全部保持原圖 (略過待決定相片)") {
                     viewModel.decideAllBatchItems(decision: .keptOriginal)
                 }
-                Button("全部儲存換臉影像 (待決定相片)") {
-                    viewModel.decideAllBatchItems(decision: .saved)
-                }
             } label: {
                 HStack(spacing: 4) {
-                    Text("批次操作")
+                    Text("批次標記")
                         .font(.system(size: 11, weight: .medium))
                     Image(systemName: "chevron.down")
                         .font(.system(size: 9))
@@ -535,10 +584,10 @@ public struct FaceSwapBatchReviewView: View {
                 .padding(.horizontal, 18)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.white)
+                        .fill(currentItem?.decision == .keptOriginal ? Color.black.opacity(0.08) : Color.white)
                         .overlay(
                             RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.black.opacity(0.15), lineWidth: 1)
+                                .stroke(currentItem?.decision == .keptOriginal ? Color.black.opacity(0.3) : Color.black.opacity(0.15), lineWidth: 1)
                         )
                         .shadow(color: Color.black.opacity(0.06), radius: 4, x: 0, y: 2)
                 )
@@ -550,12 +599,12 @@ public struct FaceSwapBatchReviewView: View {
                 viewModel.decideBatchItem(at: currentIndex, decision: .saved)
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: currentItem?.decision == .saved ? "checkmark.circle.fill" : "sparkles.rectangle.stack.fill")
                         .font(.system(size: 14, weight: .bold))
                     VStack(alignment: .leading, spacing: 1) {
-                        Text("儲存並取代原檔")
+                        Text("標記儲存取代原檔")
                             .font(.system(size: 13, weight: .bold))
-                        Text("刪除舊檔案 • 快捷鍵: Enter / S")
+                        Text("完成審查時套用取代 • 快捷鍵: Enter / S")
                             .font(.system(size: 9))
                             .opacity(0.85)
                     }
@@ -565,9 +614,9 @@ public struct FaceSwapBatchReviewView: View {
                 .padding(.horizontal, 24)
                 .background(
                     Capsule()
-                        .fill(LuminaTheme.Colors.electricIndigo)
+                        .fill(currentItem?.decision == .saved ? LuminaTheme.Colors.mintEmerald : LuminaTheme.Colors.electricIndigo)
                 )
-                .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.35), radius: 8, x: 0, y: 3)
+                .shadow(color: (currentItem?.decision == .saved ? LuminaTheme.Colors.mintEmerald : LuminaTheme.Colors.electricIndigo).opacity(0.35), radius: 8, x: 0, y: 3)
             }
             .buttonStyle(PlainButtonStyle())
             .disabled(currentItem?.result == nil)
@@ -609,16 +658,10 @@ public struct FaceSwapBatchReviewView: View {
             guard viewModel.isFaceSwapBatchReviewPresented else { return event }
             
             switch event.keyCode {
-            case 49: // Spacebar -> Keep Original
+            case 51, 117, 7, 49: // Delete, Forward Delete, X, Spacebar -> Keep Original
                 viewModel.decideBatchItem(at: viewModel.faceSwapBatchReviewIndex, decision: .keptOriginal)
                 return nil
-            case 7: // X key -> Keep Original
-                viewModel.decideBatchItem(at: viewModel.faceSwapBatchReviewIndex, decision: .keptOriginal)
-                return nil
-            case 36: // Enter / Return -> Save Swapped
-                viewModel.decideBatchItem(at: viewModel.faceSwapBatchReviewIndex, decision: .saved)
-                return nil
-            case 1: // S key -> Save Swapped
+            case 36, 76, 1: // Enter, Keypad Enter, S -> Save Swapped
                 viewModel.decideBatchItem(at: viewModel.faceSwapBatchReviewIndex, decision: .saved)
                 return nil
             case 123: // Left Arrow -> Previous
@@ -627,8 +670,8 @@ public struct FaceSwapBatchReviewView: View {
             case 124: // Right Arrow -> Next
                 viewModel.nextBatchReviewItem()
                 return nil
-            case 53: // ESC -> Finish
-                viewModel.finishBatchReview()
+            case 53: // ESC -> Finish without applying
+                viewModel.finishBatchReview(applyDecisions: false)
                 return nil
             default:
                 return event
