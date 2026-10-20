@@ -542,6 +542,30 @@ def main():
                     out_file.write(heic_bytes)
                 print(f"  -> Success! Saved as {filename}")
                 print(f"__FACESWAP_RESULT_JSON__: {json.dumps({'status': 'success', 'output_path': os.path.abspath(output_path), 'filename': filename, 'target_path': os.path.abspath(target_path), 'source_path': os.path.abspath(source_path) if source_path else ''})}")
+                
+                # Update faceswap_manifest.json in output_dir
+                try:
+                    manifest_path = os.path.join(output_dir, "faceswap_manifest.json")
+                    manifest_data = {"items": []}
+                    if os.path.exists(manifest_path):
+                        try:
+                            with open(manifest_path, "r", encoding="utf-8") as mf:
+                                manifest_data = json.load(mf)
+                        except Exception:
+                            manifest_data = {"items": []}
+                    items = manifest_data.get("items", [])
+                    items = [it for it in items if it.get("target_path") != os.path.abspath(target_path)]
+                    items.append({
+                        "target_path": os.path.abspath(target_path),
+                        "output_path": os.path.abspath(output_path),
+                        "filename": filename,
+                        "source_path": os.path.abspath(source_path) if source_path else ""
+                    })
+                    manifest_data["items"] = items
+                    with open(manifest_path, "w", encoding="utf-8") as mf:
+                        json.dump(manifest_data, mf, indent=2, ensure_ascii=False)
+                except Exception as me:
+                    print(f"  -> Warning updating manifest: {me}")
             except Exception as e:
                 print(f"  -> Error saving file: {e}")
         finally:

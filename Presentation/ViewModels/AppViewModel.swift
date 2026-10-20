@@ -110,6 +110,14 @@ public final class AppViewModel: ObservableObject {
     @Published public var faceSwapBatchSaveDestination: FaceSwapSaveDestination = .sameFolder
     @Published public var currentFaceSwapStagingDir: URL? = nil
     
+    // Detected FaceSwap from Folder
+    @Published public var detectedFaceSwapItems: [FaceSwapBatchItem] = []
+    @Published public var detectedFaceSwapCount: Int = 0
+    @Published public var hasDetectedFaceSwaps: Bool = false
+    @Published public var showDetectedFaceSwapBanner: Bool = true
+    @Published public var faceSwapResultByTargetURL: [String: FaceSwapResult] = [:]
+    @Published public var isFaceSwapDetailSplitActive: Bool = false
+    
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
     
@@ -205,6 +213,9 @@ public final class AppViewModel: ObservableObject {
                 
                 // Begin background loading of thumbnails and EXIF metadata
                 loadThumbnailsAndMetadata(for: loadedImages, generation: currentGen)
+                
+                // Detect completed face swap photos in this folder
+                self.checkForDetectedFaceSwaps(in: url, images: loadedImages)
             } catch {
                 LoggerManager.shared.log("Failed to load folder contents: \(error.localizedDescription)", level: .error)
                 self.isLoading = false
@@ -932,8 +943,8 @@ public final class AppViewModel: ObservableObject {
                 decideBatchItem(at: faceSwapBatchReviewIndex, decision: .keptOriginal)
             case KeyCode.enter, KeyCode.keypadEnter, 1: // Enter, Keypad Enter, S -> Save Swapped
                 decideBatchItem(at: faceSwapBatchReviewIndex, decision: .saved)
-            case KeyCode.escape:
-                finishBatchReview()
+            case KeyCode.escape, 15: // Esc, R -> Return to browsing
+                closeFaceSwapBatchReview()
             default:
                 break
             }
@@ -1061,6 +1072,10 @@ public final class AppViewModel: ObservableObject {
         case 0: // A Key (Cmd+A: Select All Images)
             if event.modifierFlags.contains(.command) && !isDetailActive {
                 selectAllImages()
+            }
+        case 15: // R Key (Cmd+R or R: Toggle FaceSwap Confirmation Mode)
+            if hasDetectedFaceSwaps || !faceSwapBatchItems.isEmpty {
+                toggleFaceSwapBatchReview()
             }
         default:
             break
@@ -1601,6 +1616,7 @@ public final class AppViewModel: ObservableObject {
                             if let idx = self?.faceSwapBatchItems.firstIndex(where: { $0.targetURL.path == completedResult.targetURL.path }) {
                                 self?.faceSwapBatchItems[idx].result = completedResult
                             }
+                            self?.faceSwapResultByTargetURL[completedResult.targetURL.standardizedFileURL.path] = completedResult
                         }
                     },
                     onItemFailed: { [weak self] failedURL, errorMsg in
@@ -1614,6 +1630,8 @@ public final class AppViewModel: ObservableObject {
                 
                 await MainActor.run {
                     self.faceSwapBatchItems = items
+                    self.saveFaceSwapManifest(items: items, to: stagingDir)
+                    self.syncDetectedFaceSwaps(with: items)
                     self.isFaceSwapProcessing = false
                     self.isFaceSwapBatchProcessing = false
                     self.isFaceSwapSetupPresented = false
@@ -1732,7 +1750,51 @@ public final class AppViewModel: ObservableObject {
             applyBatchDecisionsAndFinish()
             return
         }
-        
+        closeFaceSwapBatchReview()
+    }
+    
+    public func closeFaceSwapBatchReview() {
+        self.isFaceSwapBatchReviewPresented = false
+        self.showToast("已返回相片瀏覽 (保留換臉進度，隨時可按 ⌘R 再次確認)")
+    }
+    
+    public func toggleFaceSwapBatchReview() {
+        if isFaceSwapBatchReviewPresented {
+            closeFaceSwapBatchReview()
+        } else {
+            openFaceSwapBatchReview()
+        }
+    }
+    
+    public func openFaceSwapBatchReview(startIndex: Int? = nil) {
+        if faceSwapBatchItems.isEmpty && !detectedFaceSwapItems.isEmpty {
+            self.faceSwapBatchItems = detectedFaceSwapItems
+        }
+        guard !faceSwapBatchItems.isEmpty else {
+            showToast("目前沒有可供比對審查的換臉相片")
+            return
+        }
+        if let idx = startIndex, idx >= 0 && idx < faceSwapBatchItems.count {
+            self.faceSwapBatchReviewIndex = idx
+        } else if let selected = selectedImage,
+                  let matchIdx = faceSwapBatchItems.firstIndex(where: { $0.targetURL.path == selected.url.path }) {
+            self.faceSwapBatchReviewIndex = matchIdx
+        } else {
+            self.faceSwapBatchReviewIndex = 0
+        }
+        self.faceSwapPreviewMode = .sideBySide
+        self.isFaceSwapBatchReviewPresented = true
+    }
+    
+    public func openFaceSwapBatchReview(for item: ImageItem) {
+        if let idx = displayedImages.firstIndex(where: { $0.id == item.id }) {
+            self.selectedImageIndex = idx
+            self.selectedIndexes = [idx]
+        }
+        openFaceSwapBatchReview()
+    }
+    
+    public func discardAllFaceSwapStaging() {
         if let stagingDir = self.currentFaceSwapStagingDir {
             cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
             self.currentFaceSwapStagingDir = nil
@@ -1745,8 +1807,163 @@ public final class AppViewModel: ObservableObject {
         
         self.isFaceSwapBatchReviewPresented = false
         self.faceSwapBatchItems = []
+        self.detectedFaceSwapItems = []
+        self.detectedFaceSwapCount = 0
+        self.hasDetectedFaceSwaps = false
+        self.faceSwapResultByTargetURL = [:]
         self.refreshFolderContents()
-        self.showToast("已結束批次審查")
+        self.showToast("已清空並放棄換臉暫存檔")
+    }
+    
+    // MARK: - Detect Completed FaceSwaps in Folder
+    
+    public func checkForDetectedFaceSwaps(in folderURL: URL, images: [ImageItem]) {
+        let fileManager = FileManager.default
+        var pairedItems: [FaceSwapBatchItem] = []
+        var resultMap: [String: FaceSwapResult] = [:]
+        var seenTargetPaths = Set<String>()
+        
+        func addPair(targetURL: URL, previewOutputURL: URL, sourceFaceURL: URL? = nil) {
+            let key = targetURL.standardizedFileURL.path
+            guard !seenTargetPaths.contains(key) else { return }
+            guard fileManager.fileExists(atPath: targetURL.path),
+                  fileManager.fileExists(atPath: previewOutputURL.path) else { return }
+            
+            seenTargetPaths.insert(key)
+            let result = FaceSwapResult(
+                targetURL: targetURL,
+                sourceFaceURL: sourceFaceURL,
+                previewOutputURL: previewOutputURL,
+                filename: previewOutputURL.lastPathComponent
+            )
+            let item = FaceSwapBatchItem(
+                targetURL: targetURL,
+                result: result,
+                decision: .pending
+            )
+            pairedItems.append(item)
+            resultMap[key] = result
+        }
+        
+        let validImageExts: Set<String> = ["jpg", "jpeg", "png", "webp", "heic", "heif", "dng", "tiff"]
+        
+        // 1. Check faceswap_temp/faceswap_manifest.json or folder/faceswap_manifest.json
+        let tempDir = folderURL.appendingPathComponent("faceswap_temp", isDirectory: true)
+        let manifestURLs = [
+            tempDir.appendingPathComponent("faceswap_manifest.json"),
+            folderURL.appendingPathComponent("faceswap_manifest.json"),
+            folderURL.appendingPathComponent("output").appendingPathComponent("faceswap_manifest.json")
+        ]
+        
+        for manifestURL in manifestURLs {
+            if fileManager.fileExists(atPath: manifestURL.path),
+               let data = try? Data(contentsOf: manifestURL),
+               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let items = json["items"] as? [[String: Any]] {
+                for it in items {
+                    if let tgtPath = it["target_path"] as? String,
+                       let outPath = it["output_path"] as? String {
+                        let tgtURL = URL(fileURLWithPath: tgtPath)
+                        let outURL = URL(fileURLWithPath: outPath)
+                        let srcPath = it["source_path"] as? String
+                        let srcURL = (srcPath != nil && !srcPath!.isEmpty) ? URL(fileURLWithPath: srcPath!) : nil
+                        addPair(targetURL: tgtURL, previewOutputURL: outURL, sourceFaceURL: srcURL)
+                    }
+                }
+            }
+        }
+        
+        // 2. Check files inside faceswap_temp (match target images by base name)
+        if fileManager.fileExists(atPath: tempDir.path),
+           let contents = try? fileManager.contentsOfDirectory(at: tempDir, includingPropertiesForKeys: [.isRegularFileKey], options: [.skipsHiddenFiles]) {
+            let tempImageFiles = contents.filter { validImageExts.contains($0.pathExtension.lowercased()) }
+            
+            for tempImg in tempImageFiles {
+                let tempBase = tempImg.deletingPathExtension().lastPathComponent
+                let strippedBase = tempBase.hasSuffix("_swap") ? String(tempBase.dropLast(5)) : tempBase
+                
+                if let matchedTarget = images.first(where: {
+                    let tgtBase = $0.url.deletingPathExtension().lastPathComponent
+                    return tgtBase.caseInsensitiveCompare(tempBase) == .orderedSame || tgtBase.caseInsensitiveCompare(strippedBase) == .orderedSame
+                }) {
+                    addPair(targetURL: matchedTarget.url, previewOutputURL: tempImg)
+                }
+            }
+        }
+        
+        // 3. Check inside folder itself for files ending with _swap.<ext> or _faceswap.<ext>
+        for img in images {
+            let base = img.url.deletingPathExtension().lastPathComponent
+            if base.lowercased().hasSuffix("_swap") {
+                let origBase = String(base.dropLast(5))
+                if let origImg = images.first(where: {
+                    let otherBase = $0.url.deletingPathExtension().lastPathComponent
+                    return otherBase.caseInsensitiveCompare(origBase) == .orderedSame && $0.url.path != img.url.path
+                }) {
+                    addPair(targetURL: origImg.url, previewOutputURL: img.url)
+                }
+            } else if base.lowercased().hasSuffix("_faceswap") {
+                let origBase = String(base.dropLast(9))
+                if let origImg = images.first(where: {
+                    let otherBase = $0.url.deletingPathExtension().lastPathComponent
+                    return otherBase.caseInsensitiveCompare(origBase) == .orderedSame && $0.url.path != img.url.path
+                }) {
+                    addPair(targetURL: origImg.url, previewOutputURL: img.url)
+                }
+            }
+        }
+        
+        // Update State
+        Task { @MainActor in
+            self.detectedFaceSwapItems = pairedItems
+            self.detectedFaceSwapCount = pairedItems.count
+            self.hasDetectedFaceSwaps = !pairedItems.isEmpty
+            self.faceSwapResultByTargetURL = resultMap
+            if !pairedItems.isEmpty {
+                if self.faceSwapBatchItems.isEmpty {
+                    self.faceSwapBatchItems = pairedItems
+                }
+                self.currentFaceSwapStagingDir = tempDir
+                self.showDetectedFaceSwapBanner = true
+            } else {
+                self.showDetectedFaceSwapBanner = false
+            }
+        }
+    }
+    
+    public func saveFaceSwapManifest(items: [FaceSwapBatchItem], to directory: URL) {
+        let manifestURL = directory.appendingPathComponent("faceswap_manifest.json")
+        var entries: [[String: Any]] = []
+        for it in items {
+            guard let res = it.result else { continue }
+            entries.append([
+                "target_path": it.targetURL.path,
+                "output_path": res.previewOutputURL.path,
+                "filename": res.filename,
+                "source_path": res.sourceFaceURL?.path ?? ""
+            ])
+        }
+        let dict: [String: Any] = ["items": entries]
+        if let data = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+            try? data.write(to: manifestURL, options: .atomic)
+        }
+    }
+    
+    public func syncDetectedFaceSwaps(with items: [FaceSwapBatchItem]) {
+        var map: [String: FaceSwapResult] = [:]
+        let validItems = items.filter { $0.result != nil }
+        for it in validItems {
+            if let res = it.result {
+                map[it.targetURL.standardizedFileURL.path] = res
+            }
+        }
+        self.detectedFaceSwapItems = validItems
+        self.detectedFaceSwapCount = validItems.count
+        self.hasDetectedFaceSwaps = !validItems.isEmpty
+        self.faceSwapResultByTargetURL = map
+        if !validItems.isEmpty {
+            self.showDetectedFaceSwapBanner = true
+        }
     }
     
     // MARK: - Save Implementation

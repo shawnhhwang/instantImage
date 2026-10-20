@@ -72,7 +72,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 1,   // S key (FaceSwap / Save)
                 7,   // X key (Reject / Keep Original)
                 4,   // H key (Fast Convert to HEIC & Delete Original)
-                0    // A key (Cmd+A: Select All)
+                0,   // A key (Cmd+A: Select All)
+                15   // R key (Review / FaceSwap Confirmation Mode)
             ]
             
             if shortcutKeys.contains(event.keyCode) {

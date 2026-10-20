@@ -201,6 +201,20 @@ public struct ImageDetailView: View {
                     viewModel.openFaceSwapSetup(for: selectedImage)
                 }
                 
+                // Detected FaceSwap Confirmation Review Mode Button
+                if viewModel.hasDetectedFaceSwaps || !viewModel.faceSwapBatchItems.isEmpty {
+                    let hasThisPhoto = viewModel.faceSwapResultByTargetURL[selectedImage.url.standardizedFileURL.path] != nil
+                    LuminaPillButton(
+                        icon: hasThisPhoto ? "sparkles.rectangle.stack.fill" : "sparkles.rectangle.stack",
+                        label: hasThisPhoto ? "換臉比對 (⌘R)" : "換臉確認 (\(viewModel.detectedFaceSwapCount))",
+                        isSelected: viewModel.isFaceSwapBatchReviewPresented,
+                        selectedColor: LuminaTheme.Colors.electricIndigo,
+                        shortcut: "⌘R"
+                    ) {
+                        viewModel.openFaceSwapBatchReview(for: selectedImage)
+                    }
+                }
+                
                 // Fast Convert to HEIC Button
                 if selectedImage.url.pathExtension.lowercased() != "heic" && selectedImage.url.pathExtension.lowercased() != "heif" {
                     LuminaPillButton(
@@ -576,6 +590,79 @@ public struct DetailsSidebarView: View {
             }
             .buttonStyle(PlainButtonStyle())
             .disabled(viewModel.isFaceSwapProcessing)
+            
+            // Detected FaceSwap Status Card in Inspector
+            if let swapResult = viewModel.faceSwapResultByTargetURL[selectedImage.url.standardizedFileURL.path] {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                        Text("此相片已有換臉成果")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(LuminaTheme.Colors.textPrimary)
+                        Spacer()
+                        LuminaBadge("已就緒", color: LuminaTheme.Colors.mintEmerald)
+                    }
+                    
+                    HStack(spacing: 8) {
+                        if let swappedImg = NSImage(contentsOf: swapResult.previewOutputURL) {
+                            Image(nsImage: swappedImg)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: 44, height: 44)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                .overlay(RoundedRectangle(cornerRadius: 6).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.4), lineWidth: 1))
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(swapResult.filename)
+                                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                                .foregroundColor(LuminaTheme.Colors.textSecondary)
+                                .lineLimit(1)
+                            
+                            Button(action: {
+                                viewModel.openFaceSwapBatchReview(for: selectedImage)
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "arrow.left.and.right.circle.fill")
+                                    Text("進入確認模式比對 (⌘R)")
+                                }
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .padding(.vertical, 3.5)
+                                .padding(.horizontal, 8)
+                                .background(Capsule().fill(LuminaTheme.Colors.electricIndigo))
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                    }
+                }
+                .padding(8)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(LuminaTheme.Colors.electricIndigo.opacity(0.06))
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.2), lineWidth: 1))
+                )
+            } else if viewModel.hasDetectedFaceSwaps {
+                Button(action: {
+                    viewModel.openFaceSwapBatchReview()
+                }) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles.rectangle.stack.fill")
+                        Text("切換至換臉確認模式 (\(viewModel.detectedFaceSwapCount) 張 ⌘R)")
+                    }
+                    .font(.system(size: 10.5, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.electricIndigo)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(
+                        RoundedRectangle(cornerRadius: 7)
+                            .fill(LuminaTheme.Colors.electricIndigo.opacity(0.1))
+                            .overlay(RoundedRectangle(cornerRadius: 7).stroke(LuminaTheme.Colors.electricIndigo.opacity(0.3), lineWidth: 1))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
         }
     }
     

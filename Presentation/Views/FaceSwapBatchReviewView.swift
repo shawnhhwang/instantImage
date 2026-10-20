@@ -143,18 +143,26 @@ public struct FaceSwapBatchReviewView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // Close / Cancel without applying
+            // Return to Photo Browsing (Preserves staging files so user can return anytime)
             Button(action: {
-                viewModel.finishBatchReview(applyDecisions: false)
+                viewModel.closeFaceSwapBatchReview()
             }) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(LuminaTheme.Colors.textSecondary)
-                    .frame(width: 28, height: 28)
-                    .background(Circle().fill(Color.black.opacity(0.05)))
+                HStack(spacing: 4) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("返回相片瀏覽 (⌘R / Esc)")
+                        .font(.system(size: 11.5, weight: .medium))
+                }
+                .foregroundColor(LuminaTheme.Colors.textPrimary)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 10)
+                .background(
+                    Capsule()
+                        .fill(Color.black.opacity(0.06))
+                )
             }
             .buttonStyle(PlainButtonStyle())
-            .help("關閉審查 (不套用取代)")
+            .help("返回相片瀏覽 (保留換臉進度，隨時可按 ⌘R 再次確認)")
             
             // Current photo title & counter
             HStack(spacing: 8) {
@@ -245,6 +253,12 @@ public struct FaceSwapBatchReviewView: View {
                 }
                 Button("全部保持原圖 (略過待決定相片)") {
                     viewModel.decideAllBatchItems(decision: .keptOriginal)
+                }
+                Divider()
+                Button(role: .destructive, action: {
+                    viewModel.discardAllFaceSwapStaging()
+                }) {
+                    Label("清空並放棄所有換臉暫存檔...", systemImage: "trash")
                 }
             } label: {
                 HStack(spacing: 4) {
@@ -670,8 +684,8 @@ public struct FaceSwapBatchReviewView: View {
             case 124: // Right Arrow -> Next
                 viewModel.nextBatchReviewItem()
                 return nil
-            case 53: // ESC -> Finish without applying
-                viewModel.finishBatchReview(applyDecisions: false)
+            case 53, 15: // ESC or R -> Return to browsing photos (preserving staging)
+                viewModel.closeFaceSwapBatchReview()
                 return nil
             default:
                 return event

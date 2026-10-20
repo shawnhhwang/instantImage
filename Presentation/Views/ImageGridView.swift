@@ -18,6 +18,12 @@ public struct ImageGridView: View {
             // MARK: - Filter, Search & Sort Control Deck
             controlDeck
             
+            // MARK: - Detected FaceSwap Alert Banner
+            if viewModel.hasDetectedFaceSwaps && viewModel.showDetectedFaceSwapBanner {
+                detectedFaceSwapBanner
+                    .transition(.move(edge: .top).combined(with: .opacity))
+            }
+            
             // MARK: - Batch Action Floating Island (if items selected)
             if !viewModel.selectedIndexes.isEmpty {
                 batchActionIsland
@@ -132,6 +138,30 @@ public struct ImageGridView: View {
                 }
                 
                 Spacer()
+                
+                // Detected FaceSwap Button
+                if viewModel.hasDetectedFaceSwaps {
+                    Button(action: {
+                        viewModel.openFaceSwapBatchReview()
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "sparkles.rectangle.stack.fill")
+                                .font(.system(size: 10))
+                            Text("換臉確認 (\(viewModel.detectedFaceSwapCount))")
+                                .font(.system(size: 10.5, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 9)
+                        .background(
+                            Capsule()
+                                .fill(LuminaTheme.Colors.electricIndigo)
+                        )
+                        .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.3), radius: 4, x: 0, y: 1)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .help("切換至換臉確認模式 (⌘R)")
+                }
                 
                 // Select All (Cmd+A) / Deselect All Button
                 Button(action: {
@@ -257,6 +287,72 @@ public struct ImageGridView: View {
                 Rectangle().fill(LuminaTheme.Colors.borderSubtle).frame(height: 1)
             }
         )
+    }
+    
+    // MARK: - Detected FaceSwap Alert Banner
+    private var detectedFaceSwapBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(LuminaTheme.Colors.electricIndigo.opacity(0.15))
+                    .frame(width: 32, height: 32)
+                Image(systemName: "sparkles")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.electricIndigo)
+            }
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text("偵測到此資料夾有 \(viewModel.detectedFaceSwapCount) 張換臉完成相片")
+                    .font(.system(size: 12.5, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textPrimary)
+                Text("可切換至換臉確認模式逐張進行前後比對，決定保持原檔或取代")
+                    .font(.system(size: 10.5))
+                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+            }
+            
+            Spacer()
+            
+            Button(action: {
+                viewModel.openFaceSwapBatchReview()
+            }) {
+                HStack(spacing: 5) {
+                    Image(systemName: "sparkles.rectangle.stack.fill")
+                    Text("切換至換臉確認模式 (⌘R)")
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 14)
+                .background(Capsule().fill(LuminaTheme.Colors.electricIndigo))
+                .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.35), radius: 6, x: 0, y: 2)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            Button(action: {
+                viewModel.showDetectedFaceSwapBanner = false
+            }) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    .frame(width: 22, height: 22)
+                    .background(Circle().fill(Color.black.opacity(0.04)))
+            }
+            .buttonStyle(PlainButtonStyle())
+            .help("關閉此提示 (隨時可點擊工具列按鈕或按 ⌘R 進入)")
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(LuminaTheme.Colors.electricIndigo.opacity(0.35), lineWidth: 1)
+                )
+                .shadow(color: LuminaTheme.Shadows.ambient, radius: 10, x: 0, y: 4)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 8)
     }
     
     // MARK: - Batch Action Floating Island
@@ -508,8 +604,24 @@ public struct ImageGridView: View {
                 .padding(6)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 
-                // Top-Right Overlays: Format badge & Dimensions
+                // Top-Right Overlays: Format badge & Dimensions & FaceSwap status
                 VStack(alignment: .trailing, spacing: 3) {
+                    if viewModel.faceSwapResultByTargetURL[item.url.standardizedFileURL.path] != nil {
+                        HStack(spacing: 2.5) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 7.5, weight: .bold))
+                            Text("已換臉")
+                                .font(.system(size: 8, weight: .bold))
+                        }
+                        .foregroundColor(.white)
+                        .padding(.vertical, 2)
+                        .padding(.horizontal, 4.5)
+                        .background(
+                            Capsule().fill(LuminaTheme.Colors.electricIndigo)
+                        )
+                        .shadow(color: LuminaTheme.Colors.electricIndigo.opacity(0.4), radius: 3, x: 0, y: 1)
+                    }
+                    
                     let ext = item.url.pathExtension.uppercased()
                     LuminaBadge(ext, color: ext == "RAW" || ext == "CR2" || ext == "NEF" || ext == "ARW" ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textSecondary)
                     
@@ -622,6 +734,22 @@ public struct ImageGridView: View {
             hoveredCardIndex = hovering ? index : nil
         }
         .contextMenu {
+            if viewModel.faceSwapResultByTargetURL[item.url.standardizedFileURL.path] != nil {
+                Button(action: {
+                    viewModel.openFaceSwapBatchReview(for: item)
+                }) {
+                    Label("進入換臉確認模式 (比對此張 ⌘R)...", systemImage: "sparkles.rectangle.stack.fill")
+                }
+                Divider()
+            } else if viewModel.hasDetectedFaceSwaps || !viewModel.faceSwapBatchItems.isEmpty {
+                Button(action: {
+                    viewModel.openFaceSwapBatchReview()
+                }) {
+                    Label("進入換臉確認模式 (⌘R)...", systemImage: "sparkles.rectangle.stack")
+                }
+                Divider()
+            }
+            
             Button(action: {
                 viewModel.openFaceSwapSetup(for: item)
             }) {
