@@ -17,13 +17,15 @@ public actor MemoryCache {
     private let cache = NSCache<NSString, CacheEntry>()
     
     private init() {
-        let maxMegabytes = AppSettings.shared.appConfiguration.maxMemoryCacheMegabytes
+        let baseMegabytes = AppSettings.shared.appConfiguration.maxMemoryCacheMegabytes
+        let multiplier = SystemHardwareProfile.shared.cacheMultiplier
+        let maxMegabytes = max(128, Int(Double(baseMegabytes) * multiplier))
         let limitInBytes = maxMegabytes * 1024 * 1024
         
         cache.totalCostLimit = limitInBytes
         cache.name = "com.project.lumina.memorycache"
         
-        LoggerManager.shared.log("MemoryCache initialized with total cost limit: \(maxMegabytes) MB", level: .info)
+        LoggerManager.shared.log("MemoryCache initialized for \(SystemHardwareProfile.shared.architecture.rawValue) with limit: \(maxMegabytes) MB (multiplier: \(multiplier))", level: .info)
     }
     
     /// Retrieve image from the cache

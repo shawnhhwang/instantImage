@@ -123,6 +123,9 @@ public final class AppViewModel: ObservableObject {
     @Published public var gridColumnCount: Int = 4
     private let recentFoldersKey = "com.project.lumina.recentFolders"
     
+    // Hardware Architecture & Performance Tuning Engine
+    public let hardwareProfile = SystemHardwareProfile.shared
+    
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
     
@@ -739,7 +742,7 @@ public final class AppViewModel: ObservableObject {
     public func prefetchAdjacentImages() {
         guard let currentIndex = selectedImageIndex, !displayedImages.isEmpty else { return }
         
-        let prefetchWindow = 3 // Prefetch 3 ahead and 3 behind
+        let prefetchWindow = hardwareProfile.recommendedPrefetchWindow
         var indicesToPrefetch: [Int] = []
         
         for offset in 1...prefetchWindow {

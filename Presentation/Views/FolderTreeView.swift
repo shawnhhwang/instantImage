@@ -549,28 +549,30 @@ public struct FolderTreeView: View {
     
     // MARK: - System Diagnostics Footer
     private var systemDiagnosticsFooter: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             // Live Status Beacon
             Circle()
                 .fill(LuminaTheme.Colors.mintEmerald)
                 .frame(width: 6, height: 6)
                 .luminaGlow(color: LuminaTheme.Colors.mintEmerald, radius: 4)
             
-            Text("METAL 3")
-                .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                .foregroundColor(LuminaTheme.Colors.textSecondary)
+            Text(viewModel.hardwareProfile.shortEngineTag)
+                .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                .foregroundColor(viewModel.hardwareProfile.isAppleSilicon ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.cyanAccent)
             
             Text("•")
                 .foregroundColor(LuminaTheme.Colors.textMuted)
             
-            Text("FSEvents 即時監控")
-                .font(.system(size: 9))
-                .foregroundColor(LuminaTheme.Colors.textTertiary)
+            Text("Metal 3")
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                .foregroundColor(LuminaTheme.Colors.textSecondary)
             
             Spacer()
+            
+            LuminaBadge(viewModel.hardwareProfile.hasUnifiedMemory ? "UMA" : "PCIe", color: viewModel.hardwareProfile.isAppleSilicon ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.cyanAccent)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 7)
         .background(LuminaTheme.Colors.bgSurface.opacity(0.95))
         .overlay(
             VStack {
@@ -578,5 +580,6 @@ public struct FolderTreeView: View {
                 Spacer()
             }
         )
+        .help(viewModel.hardwareProfile.engineSummary)
     }
 }

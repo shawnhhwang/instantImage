@@ -5,10 +5,9 @@ import AppKit
 public final class ImageLoaderService: Sendable {
     public static let shared = ImageLoaderService()
     
-    // Limit thumbnail generation to 4 concurrent tasks to keep CPU and disk IO responsive.
-    private let thumbnailLimiter = ConcurrencyLimiter(maxConcurrency: 4)
-    // Limit EXIF extraction to 4 concurrent tasks to avoid disk I/O and thread pool overload.
-    private let metadataLimiter = ConcurrencyLimiter(maxConcurrency: 4)
+    // Dynamically tuned concurrency limiters based on host architecture (Apple Silicon vs Intel)
+    private let thumbnailLimiter = ConcurrencyLimiter(maxConcurrency: SystemHardwareProfile.shared.recommendedThumbnailConcurrency)
+    private let metadataLimiter = ConcurrencyLimiter(maxConcurrency: SystemHardwareProfile.shared.recommendedMetadataConcurrency)
     
     private init() {}
     

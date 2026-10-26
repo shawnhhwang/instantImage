@@ -457,6 +457,32 @@ public struct DetailsSidebarView: View {
             }
             .padding(.bottom, 2)
             
+            // Hardware Architecture Optimization Engine Badge
+            HStack(spacing: 7) {
+                Image(systemName: viewModel.hardwareProfile.isAppleSilicon ? "cpu.fill" : "memorychip.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(viewModel.hardwareProfile.isAppleSilicon ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.cyanAccent)
+                
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(viewModel.hardwareProfile.shortEngineTag)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(LuminaTheme.Colors.textPrimary)
+                    Text(viewModel.hardwareProfile.hasUnifiedMemory ? "UMA 統一記憶體加速 • Metal 渲染" : "PCIe / x86_64 管線優化 • Metal 渲染")
+                        .font(.system(size: 8.5))
+                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                }
+                Spacer()
+                
+                LuminaBadge(viewModel.hardwareProfile.isAppleSilicon ? "Apple Silicon" : "Intel", color: viewModel.hardwareProfile.isAppleSilicon ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.cyanAccent)
+            }
+            .padding(.vertical, 5)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: LuminaTheme.Radius.sm)
+                    .fill(Color.black.opacity(0.025))
+                    .overlay(RoundedRectangle(cornerRadius: LuminaTheme.Radius.sm).stroke(Color.black.opacity(0.06), lineWidth: 0.75))
+            )
+            
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 14) {
                     // 1. Real-Time Luminance & RGB Histogram
@@ -1304,11 +1330,8 @@ public struct MetalImageView: NSViewRepresentable {
         
         override init() {
             let device = MTLCreateSystemDefaultDevice()!
-            let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
-            self.context = CIContext(mtlDevice: device, options: [
-                .workingColorSpace: sRGB,
-                .outputColorSpace: sRGB
-            ])
+            let options = SystemHardwareProfile.shared.createCIContextOptions()
+            self.context = CIContext(mtlDevice: device, options: options)
             self.commandQueue = device.makeCommandQueue()
             super.init()
         }

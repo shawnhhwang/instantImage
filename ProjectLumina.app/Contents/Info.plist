@@ -8,6 +8,8 @@
     <string>com.shawnwang.ProjectLumina</string>
     <key>CFBundleName</key>
     <string>ProjectLumina</string>
+    <key>CFBundleDisplayName</key>
+    <string>ProjectLumina</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
@@ -16,6 +18,7 @@
     <string>1</string>
     <key>LSMinimumSystemVersion</key>
     <string>14.0</string>
+    
     <key>NSHighResolutionCapable</key>
     <true/>
 </dict>
