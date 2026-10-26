@@ -159,6 +159,7 @@ public final class ImageLoaderService: Sendable {
         
         var neutralR: Double = 0, neutralG: Double = 0, neutralB: Double = 0, neutralCount = 0
         var wpR: Double = 0, wpG: Double = 0, wpB: Double = 0, wpCount = 0
+        var skinR: Double = 0, skinG: Double = 0, skinB: Double = 0, skinCount = 0
         
         for y in 0..<height {
             let rowOffset = y * bytesPerRow
@@ -203,6 +204,14 @@ public final class ImageLoaderService: Sendable {
                         wpB += Double(b)
                         wpCount += 1
                     }
+                    
+                    // Candidate Pool 3: Human Skin Chrominance Corridor
+                    if flR > flG && flG > flB && (flR - flG) >= 8.0 && (flG - flB) >= 4.0 && sat >= 0.12 && sat <= 0.68 && lum >= 30.0 && lum <= 235.0 {
+                        skinR += Double(r)
+                        skinG += Double(g)
+                        skinB += Double(b)
+                        skinCount += 1
+                    }
                 }
             }
         }
@@ -219,6 +228,10 @@ public final class ImageLoaderService: Sendable {
         let wG = wpCount > 0 ? Float(wpG / Double(wpCount)) : 128.0
         let wB = wpCount > 0 ? Float(wpB / Double(wpCount)) : 128.0
         
+        let sR = skinCount > 0 ? Float(skinR / Double(skinCount)) : 180.0
+        let sG = skinCount > 0 ? Float(skinG / Double(skinCount)) : 140.0
+        let sB = skinCount > 0 ? Float(skinB / Double(skinCount)) : 120.0
+        
         return RGBAnalysisResult(
             histogram: bins,
             totalPixels: totalPixels,
@@ -232,7 +245,11 @@ public final class ImageLoaderService: Sendable {
             whitePatchAvgR: wR,
             whitePatchAvgG: wG,
             whitePatchAvgB: wB,
-            whitePatchCount: wpCount
+            whitePatchCount: wpCount,
+            skinAvgR: sR,
+            skinAvgG: sG,
+            skinAvgB: sB,
+            skinCount: skinCount
         )
     }
     

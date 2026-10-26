@@ -50,7 +50,7 @@ public struct ImageDetailView: View {
                                     viewModel: viewModel
                                 )
                                 .edgesIgnoringSafeArea(.all)
-                                .id("\(key)_\(viewModel.isZoomed)_\(isAutoEnabled)_\(currentCorrection?.exposure ?? 0)_\(currentCorrection?.temperature ?? 0)_\(isBeforeAfter)_\(isClipping)_\(viewModel.splitCurtainPosition)")
+                                .id("\(key)_\(viewModel.isZoomed)_\(isAutoEnabled)_\(currentCorrection?.exposure ?? 0)_\(currentCorrection?.temperature ?? 0)_\(currentCorrection?.skinSmoothing ?? 0)_\(currentCorrection?.skinToneProtection ?? 0)_\(currentCorrection?.redEyeCorrection ?? false)_\(currentCorrection?.spotRemovals.count ?? 0)_\(isBeforeAfter)_\(isClipping)_\(viewModel.splitCurtainPosition)")
                                 .gesture(
                                     TapGesture(count: 2).onEnded {
                                         viewModel.toggleZoom()
@@ -69,6 +69,11 @@ public struct ImageDetailView: View {
                                 // Interactive Draggable Split Divider Line & Handle
                                 if isBeforeAfter && currentCorrection != nil && !currentCorrection!.isNeutral {
                                     splitCurtainOverlay(in: geo.size)
+                                }
+                                
+                                // Interactive Spot Removal Mode Overlay (Click to inpaint and heal blemishes)
+                                if viewModel.isSpotRemovalModeActive {
+                                    spotRemovalCanvasOverlay(in: geo.size, currentSpots: currentCorrection?.spotRemovals ?? [])
                                 }
                                 
                                 // Precision 2.5x Loupe Magnifier 2.0
@@ -169,15 +174,17 @@ public struct ImageDetailView: View {
             
             Spacer()
             
-            let isAutoActive = viewModel.isAutoLightEnabled[key] ?? false
+            let isAutoLightActive = viewModel.isAutoLightEnabled[key] ?? false
+            let isAutoWBActive = viewModel.isAutoWBEnabled[key] ?? false
+            let currentCorrection = viewModel.lightCorrections[key]
             
             // Pod 1: AI & Enhancement Engine
             HStack(spacing: 5) {
                 // One-Click Auto Light Button
                 LuminaPillButton(
-                    icon: isAutoActive ? "wand.and.stars" : "wand.and.stars.inverse",
-                    label: isAutoActive ? "已校光" : "一鍵校光",
-                    isSelected: isAutoActive,
+                    icon: isAutoLightActive ? "wand.and.stars" : "wand.and.stars.inverse",
+                    label: isAutoLightActive ? "已校光" : "一鍵校光",
+                    isSelected: isAutoLightActive,
                     selectedColor: LuminaTheme.Colors.amberGold,
                     shortcut: "E"
                 ) {
@@ -186,13 +193,24 @@ public struct ImageDetailView: View {
                 
                 // Auto White Balance Button
                 LuminaPillButton(
-                    icon: "thermometer.sun.fill",
-                    label: "自動白平衡",
-                    isSelected: false,
+                    icon: isAutoWBActive ? "thermometer.sun.fill" : "thermometer.sun",
+                    label: isAutoWBActive ? "已白平衡" : "自動白平衡",
+                    isSelected: isAutoWBActive,
                     selectedColor: LuminaTheme.Colors.skyBlue,
                     shortcut: "W"
                 ) {
-                    viewModel.applyAutoWhiteBalanceForSelected()
+                    viewModel.toggleAutoWhiteBalanceForSelected()
+                }
+                
+                // Spot / Blemish Removal Button
+                LuminaPillButton(
+                    icon: "circle.dashed",
+                    label: viewModel.isSpotRemovalModeActive ? "修復中" : "去除污漬",
+                    isSelected: viewModel.isSpotRemovalModeActive,
+                    selectedColor: LuminaTheme.Colors.mintEmerald,
+                    shortcut: "B"
+                ) {
+                    viewModel.toggleSpotRemovalMode()
                 }
                 
                 // AI FaceSwap Button
@@ -232,6 +250,17 @@ public struct ImageDetailView: View {
                         viewModel.convertSelectedImagesToHEIC()
                     }
                 }
+                
+                // Short Hash Renaming Button
+                LuminaPillButton(
+                    icon: "number",
+                    label: "短 Hash",
+                    isSelected: false,
+                    selectedColor: LuminaTheme.Colors.amberGold,
+                    shortcut: "N"
+                ) {
+                    viewModel.applyShortHashToSelectedFilenames()
+                }
             }
             .padding(.vertical, 3)
             .padding(.horizontal, 5)
@@ -240,7 +269,7 @@ public struct ImageDetailView: View {
             // Pod 2: Proofing & Inspection Tools
             HStack(spacing: 4) {
                 // Before/After Split Curtain
-                if isAutoActive {
+                if isAutoLightActive || isAutoWBActive || (currentCorrection != nil && !currentCorrection!.isNeutral) {
                     LuminaIconButton(
                         icon: "square.split.2x1",
                         title: viewModel.isBeforeAfterComparisonActive ? "關閉前後對比分割簾" : "開啟前後對比分割簾",
@@ -392,6 +421,32 @@ public struct ImageDetailView: View {
                         viewModel.splitCurtainPosition = newRatio
                     }
             )
+        }
+    }
+    
+    // MARK: - Interactive Spot Removal Mode Canvas Overlay
+    private func spotRemovalCanvasOverlay(in size: CGSize, currentSpots: [SpotRemovalItem]) -> some View {
+        ZStack {
+            // Invisible touch receiver across canvas to register spot clicks
+            Color.black.opacity(0.001)
+                .contentShape(Rectangle())
+                .onTapGesture { location in
+                    guard size.width > 0 && size.height > 0 else { return }
+                    let u = location.x / size.width
+                    let v = 1.0 - (location.y / size.height)
+                    let normRadius = max(0.008, min(0.08, viewModel.spotBrushRadius / min(size.width, size.height)))
+                    viewModel.addSpotRemoval(normalizedPoint: CGPoint(x: u, y: v), normalizedRadius: normRadius)
+                }
+            
+            // Draw indicators around all registered spot removals
+            ForEach(currentSpots, id: \.id) { spot in
+                let spotDiameter = spot.radius * min(size.width, size.height) * 2
+                Circle()
+                    .stroke(LuminaTheme.Colors.mintEmerald, lineWidth: 1.5)
+                    .background(Circle().fill(LuminaTheme.Colors.mintEmerald.opacity(0.18)))
+                    .frame(width: spotDiameter, height: spotDiameter)
+                    .position(x: spot.normalizedX * size.width, y: (1.0 - spot.normalizedY) * size.height)
+            }
         }
     }
     
@@ -713,7 +768,7 @@ public struct DetailsSidebarView: View {
     
     // MARK: - Tone Correction Section
     private var toneCorrectionSection: some View {
-        let isAutoActive = viewModel.isAutoLightEnabled[key] ?? false
+        let isAutoLightActive = viewModel.isAutoLightEnabled[key] ?? false
         let currentParams = viewModel.lightCorrections[key] ?? .neutral
         
         return VStack(alignment: .leading, spacing: 10) {
@@ -744,15 +799,15 @@ public struct DetailsSidebarView: View {
                     viewModel.toggleAutoLightForSelected()
                 }) {
                     HStack(spacing: 3) {
-                        Image(systemName: isAutoActive ? "wand.and.stars" : "wand.and.stars.inverse")
-                        Text(isAutoActive ? "校光中" : "一鍵自動 (E)")
+                        Image(systemName: isAutoLightActive ? "wand.and.stars" : "wand.and.stars.inverse")
+                        Text(isAutoLightActive ? "已校光" : "一鍵自動 (E)")
                     }
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundColor(isAutoActive ? .black : LuminaTheme.Colors.amberGold)
+                    .foregroundColor(isAutoLightActive ? .black : LuminaTheme.Colors.amberGold)
                     .padding(.vertical, 3)
                     .padding(.horizontal, 7)
                     .background(
-                        Capsule().fill(isAutoActive ? LuminaTheme.Colors.amberGold : LuminaTheme.Colors.amberGold.opacity(0.14))
+                        Capsule().fill(isAutoLightActive ? LuminaTheme.Colors.amberGold : LuminaTheme.Colors.amberGold.opacity(0.14))
                     )
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -831,15 +886,21 @@ public struct DetailsSidebarView: View {
                 
                 Spacer()
                 
+                let isAutoWBActive = viewModel.isAutoWBEnabled[key] ?? false
                 Button(action: {
-                    viewModel.applyAutoWhiteBalanceForSelected()
+                    viewModel.toggleAutoWhiteBalanceForSelected()
                 }) {
-                    Text("自動白平衡 (W)")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundColor(LuminaTheme.Colors.skyBlue)
-                        .padding(.vertical, 2)
-                        .padding(.horizontal, 6)
-                        .background(Capsule().fill(LuminaTheme.Colors.skyBlue.opacity(0.15)))
+                    HStack(spacing: 3) {
+                        Image(systemName: isAutoWBActive ? "thermometer.sun.fill" : "thermometer.sun")
+                        Text(isAutoWBActive ? "已白平衡" : "自動白平衡 (W)")
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(isAutoWBActive ? .black : LuminaTheme.Colors.skyBlue)
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 7)
+                    .background(
+                        Capsule().fill(isAutoWBActive ? LuminaTheme.Colors.skyBlue : LuminaTheme.Colors.skyBlue.opacity(0.15))
+                    )
                 }
                 .buttonStyle(PlainButtonStyle())
             }
@@ -878,6 +939,9 @@ public struct DetailsSidebarView: View {
                 defaultValue: 0.0,
                 trackGradient: LuminaTheme.Gradients.tintGradient
             )
+            
+            // Portrait Beauty & Skin Retouch Section
+            portraitRetouchSection(currentParams: currentParams, selectedImage: selectedImage)
             
             // Batch Sync & Reset Controls
             HStack(spacing: 8) {
@@ -926,6 +990,137 @@ public struct DetailsSidebarView: View {
                 }
             }
             .padding(.top, 4)
+        }
+    }
+    
+    // MARK: - Portrait Beauty & Skin Retouch Section
+    private func portraitRetouchSection(currentParams: LightCorrectionParams, selectedImage: ImageItem) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            // Header
+            HStack {
+                Text("人像美容與修飾")
+                    .font(.system(size: 10, weight: .heavy, design: .monospaced))
+                    .tracking(0.6)
+                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+                
+                Spacer()
+                
+                // Red-Eye Quick Toggle
+                Button(action: {
+                    viewModel.toggleRedEyeCorrectionForSelected()
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: currentParams.redEyeCorrection ? "eye.trianglebadge.exclamationmark" : "eye")
+                        Text(currentParams.redEyeCorrection ? "已消紅眼" : "紅眼校正")
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(currentParams.redEyeCorrection ? .white : LuminaTheme.Colors.neonCoral)
+                    .padding(.vertical, 2)
+                    .padding(.horizontal, 6)
+                    .background(
+                        Capsule().fill(currentParams.redEyeCorrection ? LuminaTheme.Colors.neonCoral : LuminaTheme.Colors.neonCoral.opacity(0.14))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("智慧偵測人臉瞳孔並消除閃光燈紅眼")
+            }
+            .padding(.top, 4)
+            
+            // 1. Skin Smoothing Slider (人像磨皮)
+            LuminaPrecisionSlider(
+                label: "柔化皮膚 (磨皮)",
+                valueDisplay: "\(Int(currentParams.skinSmoothing * 100))%",
+                value: Binding(
+                    get: { currentParams.skinSmoothing },
+                    set: { newVal in
+                        var updated = currentParams
+                        updated.skinSmoothing = newVal
+                        viewModel.updateLightCorrection(for: selectedImage, params: updated)
+                    }
+                ),
+                range: 0.0...1.0,
+                defaultValue: 0.0
+            )
+            
+            // 2. Skin Tone Protection Slider (膚色保護)
+            LuminaPrecisionSlider(
+                label: "膚色保護",
+                valueDisplay: "\(Int(currentParams.skinToneProtection * 100))%",
+                value: Binding(
+                    get: { currentParams.skinToneProtection },
+                    set: { newVal in
+                        var updated = currentParams
+                        updated.skinToneProtection = newVal
+                        viewModel.updateLightCorrection(for: selectedImage, params: updated)
+                    }
+                ),
+                range: 0.0...1.0,
+                defaultValue: 0.6
+            )
+            
+            // 3. Spot & Blemish Removal Controls
+            HStack(spacing: 6) {
+                Button(action: {
+                    viewModel.toggleSpotRemovalMode()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: viewModel.isSpotRemovalModeActive ? "allergens" : "circle.dashed")
+                        Text(viewModel.isSpotRemovalModeActive ? "修復中 (B)" : "去除污漬 (B)")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(viewModel.isSpotRemovalModeActive ? .black : LuminaTheme.Colors.mintEmerald)
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 8)
+                    .background(
+                        Capsule().fill(viewModel.isSpotRemovalModeActive ? LuminaTheme.Colors.mintEmerald : LuminaTheme.Colors.mintEmerald.opacity(0.14))
+                    )
+                }
+                .buttonStyle(PlainButtonStyle())
+                .help("開啟污漬修復模式，點擊相片上的斑點、青春痘、感光元件灰塵即可瞬間消除")
+                
+                if !currentParams.spotRemovals.isEmpty {
+                    Button("復原") {
+                        viewModel.undoLastSpotRemoval()
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(LuminaTheme.Colors.textSecondary)
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button("清除全部") {
+                        viewModel.clearAllSpotRemovals()
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundColor(LuminaTheme.Colors.neonCoral)
+                    .buttonStyle(PlainButtonStyle())
+                }
+                
+                Spacer()
+                
+                if !currentParams.spotRemovals.isEmpty {
+                    Text("\(currentParams.spotRemovals.count) 個斑點")
+                        .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                        .foregroundColor(LuminaTheme.Colors.textMuted)
+                }
+            }
+            .padding(.top, 2)
+            
+            // Brush radius slider when spot removal active
+            if viewModel.isSpotRemovalModeActive {
+                HStack(spacing: 6) {
+                    Text("筆刷大小")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(LuminaTheme.Colors.textSecondary)
+                    
+                    Slider(value: $viewModel.spotBrushRadius, in: 10.0...60.0)
+                        .accentColor(LuminaTheme.Colors.mintEmerald)
+                    
+                    Text("\(Int(viewModel.spotBrushRadius)) px")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(LuminaTheme.Colors.mintEmerald)
+                        .frame(width: 36, alignment: .trailing)
+                }
+                .padding(.horizontal, 4)
+            }
         }
     }
     
@@ -1432,6 +1627,11 @@ public struct MetalImageView: NSViewRepresentable {
                         "inputHighlightAmount": hlAmount,
                         "inputShadowAmount": shAmount
                     ])
+                }
+                
+                // Portrait Beauty & Skin Retouch Pipeline
+                if params.redEyeCorrection || !params.spotRemovals.isEmpty || params.skinSmoothing > 0.01 || params.skinToneProtection > 0.1 {
+                    processedImage = PortraitRetouchService.shared.applyPortraitRetouch(to: processedImage, params: params)
                 }
             }
             

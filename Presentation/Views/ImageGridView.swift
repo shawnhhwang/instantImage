@@ -523,6 +523,31 @@ public struct ImageGridView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
+            // Short Hash Renaming (N)
+            Button(action: {
+                viewModel.applyShortHashToSelectedFilenames()
+            }) {
+                HStack(spacing: 4) {
+                    Image(systemName: "number")
+                    Text("短 Hash 命名")
+                    Text("N")
+                        .font(.system(size: 8, weight: .bold))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 1)
+                        .background(Capsule().fill(LuminaTheme.Colors.amberGold.opacity(0.25)))
+                }
+                .font(.system(size: 10.5, weight: .bold))
+                .foregroundColor(LuminaTheme.Colors.amberGold)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(
+                    Capsule().fill(LuminaTheme.Colors.amberGold.opacity(0.12))
+                        .overlay(Capsule().stroke(LuminaTheme.Colors.amberGold.opacity(0.35), lineWidth: 0.75))
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            .help("計算影像內容 8 碼短 Hash 並附加於檔名，防止同名重複 (N)")
+            
             Spacer()
             
             // Select All (Cmd+A) in Batch Island
@@ -807,6 +832,12 @@ public struct ImageGridView: View {
                 viewModel.isDetailActive = true
             }) {
                 Label("檢視大圖 (Space)", systemImage: "arrow.up.left.and.arrow.down.right")
+            }
+            Button(action: {
+                viewModel.selectedImageIndex = index
+                viewModel.applyShortHashToSelectedFilenames()
+            }) {
+                Label("檔名附加短 Hash 防重複 (N)", systemImage: "number")
             }
             Button(action: {
                 viewModel.toggleTagged(for: item)

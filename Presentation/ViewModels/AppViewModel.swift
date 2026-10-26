@@ -4,6 +4,7 @@ import CoreGraphics
 import AppKit
 import ImageIO
 import UniformTypeIdentifiers
+import CryptoKit
 
 public enum SortOption: String, CaseIterable, Identifiable {
     case filename = "檔名"
@@ -52,6 +53,7 @@ public final class AppViewModel: ObservableObject {
     // Lightroom-style Light / Tone Correction
     @Published public var lightCorrections: [String: LightCorrectionParams] = [:]
     @Published public var isAutoLightEnabled: [String: Bool] = [:]
+    @Published public var isAutoWBEnabled: [String: Bool] = [:]
     @Published public var isBeforeAfterComparisonActive: Bool = false
     @Published public var isClippingWarningActive: Bool = false
     public var copiedLightCorrection: LightCorrectionParams? = nil
@@ -535,7 +537,8 @@ public final class AppViewModel: ObservableObject {
         let key = image.url.path
         lightCorrections[key] = .neutral
         isAutoLightEnabled[key] = false
-        showToast("已重置所有調光參數至原始狀態")
+        isAutoWBEnabled[key] = false
+        showToast("已重置所有調光與白平衡參數至原始狀態")
         calculateHistogramForSelected()
     }
     
@@ -587,9 +590,14 @@ public final class AppViewModel: ObservableObject {
         let currentlyEnabled = isAutoLightEnabled[key] ?? false
         
         if currentlyEnabled {
-            // Disable auto light correction
+            // Disable auto light correction (reset tone parameters only, preserve White Balance!)
             isAutoLightEnabled[key] = false
-            lightCorrections[key] = .neutral
+            var current = lightCorrections[key] ?? .neutral
+            current.exposure = 0.0
+            current.contrast = 1.0
+            current.highlights = 0.0
+            current.shadows = 0.0
+            lightCorrections[key] = current
             showToast("已關閉一鍵校光")
         } else {
             // Enable and calculate optimal Lightroom parameters
@@ -637,6 +645,26 @@ public final class AppViewModel: ObservableObject {
     }
     
     // Feature A: Auto White Balance
+    
+    /// Toggle Auto White Balance for currently active/selected image
+    public func toggleAutoWhiteBalanceForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        let currentlyEnabled = isAutoWBEnabled[key] ?? false
+        
+        if currentlyEnabled {
+            // Disable Auto WB, reset temperature & tint to neutral (0), but preserve tone!
+            isAutoWBEnabled[key] = false
+            var current = lightCorrections[key] ?? .neutral
+            current.temperature = 0.0
+            current.tint = 0.0
+            lightCorrections[key] = current
+            showToast("已重設白平衡至原始狀態")
+        } else {
+            applyAutoWhiteBalanceForSelected()
+        }
+    }
+    
     public func applyAutoWhiteBalanceForSelected() {
         guard let image = selectedImage else { return }
         let key = image.url.path
@@ -644,10 +672,12 @@ public final class AppViewModel: ObservableObject {
         let applyWB: ((temperature: Float, tint: Float)) -> Void = { [weak self] wb in
             guard let self = self else { return }
             var current = self.lightCorrections[key] ?? .neutral
+            // Only update temperature and tint! Do NOT touch exposure, contrast, highlights, shadows!
             current.temperature = wb.temperature
             current.tint = wb.tint
             self.lightCorrections[key] = current
-            self.isAutoLightEnabled[key] = true
+            self.isAutoWBEnabled[key] = true
+            // IMPORTANT: Do NOT touch self.isAutoLightEnabled[key]! They are separate!
             let tempSign = wb.temperature >= 0 ? "+\(Int(wb.temperature))" : "\(Int(wb.temperature))"
             let tintSign = wb.tint >= 0 ? "+\(Int(wb.tint))" : "\(Int(wb.tint))"
             self.showToast("自動白平衡: 色溫 \(tempSign)K, 色調 \(tintSign)")
@@ -757,7 +787,70 @@ public final class AppViewModel: ObservableObject {
     public func updateLightCorrection(for image: ImageItem, params: LightCorrectionParams) {
         let key = image.url.path
         lightCorrections[key] = params
-        isAutoLightEnabled[key] = !params.isNeutral
+    }
+    
+    // MARK: - Portrait Beauty & Retouching
+    
+    @Published public var isSpotRemovalModeActive: Bool = false
+    @Published public var spotBrushRadius: CGFloat = 24.0
+    
+    public func toggleRedEyeCorrectionForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        current.redEyeCorrection.toggle()
+        lightCorrections[key] = current
+        showToast(current.redEyeCorrection ? "已啟用智慧紅眼校正" : "已關閉紅眼校正")
+    }
+    
+    public func toggleSpotRemovalMode() {
+        isSpotRemovalModeActive.toggle()
+        showToast(isSpotRemovalModeActive ? "已開啟污漬修復模式 (B)：點擊畫面斑點即可消除" : "已關閉污漬修復模式")
+    }
+    
+    public func addSpotRemoval(normalizedPoint: CGPoint, normalizedRadius: CGFloat) {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        let spot = SpotRemovalItem(normalizedX: normalizedPoint.x, normalizedY: normalizedPoint.y, radius: normalizedRadius)
+        current.spotRemovals.append(spot)
+        lightCorrections[key] = current
+        showToast("已修復污漬斑點 (共 \(current.spotRemovals.count) 處)")
+    }
+    
+    public func undoLastSpotRemoval() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        guard !current.spotRemovals.isEmpty else { return }
+        current.spotRemovals.removeLast()
+        lightCorrections[key] = current
+        showToast("已復原上一個污漬修復 (剩餘 \(current.spotRemovals.count) 處)")
+    }
+    
+    public func clearAllSpotRemovals() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        current.spotRemovals.removeAll()
+        lightCorrections[key] = current
+        showToast("已清除所有污漬修復點")
+    }
+    
+    public func updateSkinSmoothing(to value: Float) {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        current.skinSmoothing = max(0.0, min(1.0, value))
+        lightCorrections[key] = current
+    }
+    
+    public func updateSkinToneProtection(to value: Float) {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        current.skinToneProtection = max(0.0, min(1.0, value))
+        lightCorrections[key] = current
     }
     
     /// Look-ahead prefetching of adjacent images for seamless ACDSee-style culling
@@ -1134,7 +1227,11 @@ public final class AppViewModel: ObservableObject {
             }
         case 13: // W Key (Auto White Balance)
             if isDetailActive {
-                applyAutoWhiteBalanceForSelected()
+                toggleAutoWhiteBalanceForSelected()
+            }
+        case 11: // B Key (Spot / Blemish Removal mode)
+            if isDetailActive {
+                toggleSpotRemovalMode()
             }
         case 38: // J Key (Lightroom Clipping Warning toggle)
             if isDetailActive {
@@ -1159,7 +1256,7 @@ public final class AppViewModel: ObservableObject {
             if isDetailActive {
                 isSidebarOpenInDetail.toggle()
             }
-        case 11: // 'B' Key (Toggle Filmstrip)
+        case 3: // 'F' Key (Toggle Filmstrip)
             if isDetailActive {
                 isFilmstripVisible.toggle()
             }
@@ -1167,6 +1264,8 @@ public final class AppViewModel: ObservableObject {
             deleteSelectedImage()
         case KeyCode.hKey:
             convertSelectedImagesToHEIC()
+        case 45: // N Key (Apply Short Hash to Selected Filenames)
+            applyShortHashToSelectedFilenames()
         case 0: // A Key (Cmd+A: Select All Images)
             if event.modifierFlags.contains(.command) && !isDetailActive {
                 selectAllImages()
@@ -2449,6 +2548,10 @@ public final class AppViewModel: ObservableObject {
                         "inputShadowAmount": shAmount
                     ])
                 }
+                // Apply Portrait Beauty & Retouch Pipeline (Red Eye, Blemish Inpainting, Skin Smoothing)
+                if params.redEyeCorrection || !params.spotRemovals.isEmpty || params.skinSmoothing > 0.01 || params.skinToneProtection > 0.1 {
+                    ci = PortraitRetouchService.shared.applyPortraitRetouch(to: ci, params: params, baseCGImage: cgImage)
+                }
                 let ciContext = CIContext(options: SystemHardwareProfile.shared.createCIContextOptions())
                 if let processedCG = ciContext.createCGImage(ci, from: ci.extent) {
                     imageToEncode = processedCG
@@ -2486,6 +2589,147 @@ public final class AppViewModel: ObservableObject {
             LoggerManager.shared.log("Converted \(sourceURL.lastPathComponent) to HEIC: \(destURL.lastPathComponent) and trashed original", level: .info)
             return destURL
         }.value
+    }
+    
+    // MARK: - Single & Batch Short Hash Filename Renaming (Decoupled from HEIC)
+    
+    /// Compute an 8-character hex SHA-256 content short-hash for an image file
+    public static func computeFileShortHash(for url: URL, length: Int = 8) -> String {
+        if let fileData = try? Data(contentsOf: url, options: .mappedIfSafe) {
+            let digest = SHA256.hash(data: fileData)
+            let hex = digest.compactMap { String(format: "%02x", $0) }.joined()
+            return String(hex.prefix(length))
+        } else {
+            let attr = (try? FileManager.default.attributesOfItem(atPath: url.path)) ?? [:]
+            let modDate = (attr[.modificationDate] as? Date)?.timeIntervalSince1970 ?? 0
+            let size = (attr[.size] as? UInt64) ?? 0
+            let seed = "\(url.path)_\(size)_\(modDate)"
+            let digest = SHA256.hash(data: Data(seed.utf8))
+            let hex = digest.compactMap { String(format: "%02x", $0) }.joined()
+            return String(hex.prefix(length))
+        }
+    }
+    
+    /// Apply short-hash to the selected single image or multi-selected batch of images
+    public func applyShortHashToSelectedFilenames() {
+        let targetsToHash: [ImageItem]
+        if !selectedIndexes.isEmpty {
+            let sorted = Array(selectedIndexes).sorted()
+            targetsToHash = sorted.compactMap { idx in
+                (idx >= 0 && idx < displayedImages.count) ? displayedImages[idx] : nil
+            }
+        } else if let selIdx = selectedImageIndex, selIdx >= 0, selIdx < displayedImages.count {
+            targetsToHash = [displayedImages[selIdx]]
+        } else {
+            showToast("請先選取要進行短 Hash 命名的相片")
+            return
+        }
+        
+        guard !targetsToHash.isEmpty else { return }
+        
+        showToast("⚡️ 正在對 \(targetsToHash.count) 張相片進行短 Hash 命名...")
+        
+        Task {
+            var renamedCount = 0
+            var skippedCount = 0
+            var failedCount = 0
+            var lastNewURL: URL? = nil
+            let fileManager = FileManager.default
+            
+            for item in targetsToHash {
+                let sourceURL = item.url
+                let targetDir = sourceURL.deletingLastPathComponent()
+                let currentBaseName = sourceURL.deletingPathExtension().lastPathComponent
+                let ext = sourceURL.pathExtension
+                
+                // 1. Calculate content short hash
+                let shortHash = Self.computeFileShortHash(for: sourceURL, length: 8)
+                
+                // 2. Strip any preexisting 8-char hex hash suffix (e.g. "_a1b2c3d4") to prevent infinite chaining like "_hash_hash"
+                var pureBaseName = currentBaseName
+                if let hashRange = currentBaseName.range(of: "_[0-9a-fA-F]{8}$", options: .regularExpression) {
+                    let existingHash = String(currentBaseName[hashRange].dropFirst()) // drop leading '_'
+                    if existingHash.lowercased() == shortHash.lowercased() {
+                        // Already accurately hashed with matching short hash
+                        skippedCount += 1
+                        continue
+                    }
+                    pureBaseName = String(currentBaseName[..<hashRange.lowerBound])
+                }
+                
+                // 3. Resolve destination URL with collision avoidance
+                let newBaseName = "\(pureBaseName)_\(shortHash)"
+                var destURL = ext.isEmpty ? targetDir.appendingPathComponent(newBaseName) : targetDir.appendingPathComponent("\(newBaseName).\(ext)")
+                
+                if destURL.path == sourceURL.path {
+                    skippedCount += 1
+                    continue
+                }
+                
+                var collisionIndex = 1
+                while fileManager.fileExists(atPath: destURL.path) && destURL.path != sourceURL.path {
+                    let collidedName = "\(newBaseName)_\(collisionIndex)"
+                    destURL = ext.isEmpty ? targetDir.appendingPathComponent(collidedName) : targetDir.appendingPathComponent("\(collidedName).\(ext)")
+                    collisionIndex += 1
+                }
+                
+                // 4. Atomic rename and companion XMP sidecar sync
+                do {
+                    try fileManager.moveItem(at: sourceURL, to: destURL)
+                    
+                    // Companion XMP sidecar if present
+                    let xmpSource = sourceURL.deletingPathExtension().appendingPathExtension("xmp")
+                    if fileManager.fileExists(atPath: xmpSource.path) {
+                        let xmpDest = destURL.deletingPathExtension().appendingPathExtension("xmp")
+                        try? fileManager.moveItem(at: xmpSource, to: xmpDest)
+                    }
+                    
+                    await MainActor.run {
+                        // Migrate in-memory state mappings to new path
+                        if let light = self.lightCorrections.removeValue(forKey: sourceURL.path) {
+                            self.lightCorrections[destURL.path] = light
+                        }
+                        if let lightEnabled = self.isAutoLightEnabled.removeValue(forKey: sourceURL.path) {
+                            self.isAutoLightEnabled[destURL.path] = lightEnabled
+                        }
+                        if let wbEnabled = self.isAutoWBEnabled.removeValue(forKey: sourceURL.path) {
+                            self.isAutoWBEnabled[destURL.path] = wbEnabled
+                        }
+                        if let meta = self.exifMetadata.removeValue(forKey: sourceURL.path) {
+                            self.exifMetadata[destURL.path] = meta
+                        }
+                        if let thumb = self.thumbnails.removeValue(forKey: sourceURL.path) {
+                            self.thumbnails[destURL.path] = thumb
+                        }
+                    }
+                    
+                    lastNewURL = destURL
+                    renamedCount += 1
+                    LoggerManager.shared.log("Renamed \(sourceURL.lastPathComponent) -> \(destURL.lastPathComponent)", level: .info)
+                } catch {
+                    LoggerManager.shared.log("Failed to rename \(sourceURL.lastPathComponent) to short hash: \(error.localizedDescription)", level: .error)
+                    failedCount += 1
+                }
+            }
+            
+            await MainActor.run {
+                if renamedCount > 0 {
+                    self.refreshFolderContents()
+                    if targetsToHash.count == 1, let newURL = lastNewURL {
+                        if let newIndex = self.displayedImages.firstIndex(where: { $0.url == newURL }) {
+                            self.selectedImageIndex = newIndex
+                        }
+                        self.showToast("⚡️ 檔名已成功附加短 Hash: \(newURL.lastPathComponent)")
+                    } else {
+                        self.showToast("⚡️ 已完成 \(renamedCount) 張相片短 Hash 命名" + (skippedCount > 0 ? " (跳過 \(skippedCount) 張已具備最新短 Hash)" : ""))
+                    }
+                } else if skippedCount > 0 {
+                    self.showToast("選取的相片已具備對應短 Hash，無需重複命名")
+                } else if failedCount > 0 {
+                    self.showToast("短 Hash 命名失敗，請檢查檔案寫入權限")
+                }
+            }
+        }
     }
 }
 

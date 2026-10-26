@@ -2,8 +2,24 @@ import Foundation
 import CoreGraphics
 import CoreImage
 
-/// Light and Color adjustment parameters mimicking Adobe Lightroom's Basic Tone & Color panel
+/// Individual spot / blemish removal patch storing normalized center coordinates (0.0...1.0) and pixel/normalized radius
+public struct SpotRemovalItem: Codable, Equatable, Hashable, Sendable {
+    public var id: UUID
+    public var normalizedX: CGFloat // 0.0 to 1.0 (relative to image width)
+    public var normalizedY: CGFloat // 0.0 to 1.0 (relative to image height)
+    public var radius: CGFloat      // in normalized units (0.005 to 0.10)
+    
+    public init(id: UUID = UUID(), normalizedX: CGFloat, normalizedY: CGFloat, radius: CGFloat = 0.02) {
+        self.id = id
+        self.normalizedX = normalizedX
+        self.normalizedY = normalizedY
+        self.radius = radius
+    }
+}
+
+/// Light, Color, and Portrait Beauty adjustment parameters mimicking Adobe Lightroom and nEOiMAGING
 public struct LightCorrectionParams: Equatable, Hashable, Sendable {
+    // Tone adjustments
     public var exposure: Float    // -2.0 to +2.0 (EV stops)
     public var contrast: Float    // 0.5 to 1.5 (1.0 = neutral)
     public var highlights: Float  // -1.0 to 1.0 (recovers blown highlights or adds pop)
@@ -15,13 +31,23 @@ public struct LightCorrectionParams: Equatable, Hashable, Sendable {
     // tint: neutral is 0. Stored as offset: -100 (green) to +100 (magenta)
     public var tint: Float        // -100 to +100
     
+    // Feature B: Portrait Beauty & Skin Tone Protection
+    public var skinToneProtection: Float // 0.0 to 1.0 (0.6 = default recommended protection)
+    public var skinSmoothing: Float      // 0.0 to 1.0 (0 = off, 1.0 = maximum smooth porcelain)
+    public var redEyeCorrection: Bool    // true = automatically neutralize pupil red glare
+    public var spotRemovals: [SpotRemovalItem] // user-placed spot/blemish heals
+    
     public init(
         exposure: Float = 0.0,
         contrast: Float = 1.0,
         highlights: Float = 0.0,
         shadows: Float = 0.0,
         temperature: Float = 0.0,
-        tint: Float = 0.0
+        tint: Float = 0.0,
+        skinToneProtection: Float = 0.6,
+        skinSmoothing: Float = 0.0,
+        redEyeCorrection: Bool = false,
+        spotRemovals: [SpotRemovalItem] = []
     ) {
         self.exposure = exposure
         self.contrast = contrast
@@ -29,6 +55,10 @@ public struct LightCorrectionParams: Equatable, Hashable, Sendable {
         self.shadows = shadows
         self.temperature = temperature
         self.tint = tint
+        self.skinToneProtection = skinToneProtection
+        self.skinSmoothing = skinSmoothing
+        self.redEyeCorrection = redEyeCorrection
+        self.spotRemovals = spotRemovals
     }
     
     public static let neutral = LightCorrectionParams()
@@ -39,11 +69,14 @@ public struct LightCorrectionParams: Equatable, Hashable, Sendable {
                abs(highlights) < 0.001 &&
                abs(shadows) < 0.001 &&
                abs(temperature) < 1.0 &&
-               abs(tint) < 1.0
+               abs(tint) < 1.0 &&
+               skinSmoothing < 0.01 &&
+               !redEyeCorrection &&
+               spotRemovals.isEmpty
     }
 }
 
-/// Comprehensive photographic analysis results capturing luminance histograms and multi-zone chrominance candidates.
+/// Comprehensive photographic analysis results capturing luminance histograms, multi-zone chrominance, and skin tone pools.
 public struct RGBAnalysisResult: Sendable {
     public let histogram: [Int]
     public let totalPixels: Int
@@ -63,6 +96,12 @@ public struct RGBAnalysisResult: Sendable {
     public let whitePatchAvgB: Float
     public let whitePatchCount: Int
     
+    // Skin-tone candidate pool (Human skin chrominance corridor)
+    public let skinAvgR: Float
+    public let skinAvgG: Float
+    public let skinAvgB: Float
+    public let skinCount: Int
+    
     public init(
         histogram: [Int],
         totalPixels: Int,
@@ -76,7 +115,11 @@ public struct RGBAnalysisResult: Sendable {
         whitePatchAvgR: Float = 128.0,
         whitePatchAvgG: Float = 128.0,
         whitePatchAvgB: Float = 128.0,
-        whitePatchCount: Int = 0
+        whitePatchCount: Int = 0,
+        skinAvgR: Float = 180.0,
+        skinAvgG: Float = 140.0,
+        skinAvgB: Float = 120.0,
+        skinCount: Int = 0
     ) {
         self.histogram = histogram
         self.totalPixels = totalPixels
@@ -91,10 +134,14 @@ public struct RGBAnalysisResult: Sendable {
         self.whitePatchAvgG = whitePatchAvgG
         self.whitePatchAvgB = whitePatchAvgB
         self.whitePatchCount = whitePatchCount
+        self.skinAvgR = skinAvgR
+        self.skinAvgG = skinAvgG
+        self.skinAvgB = skinAvgB
+        self.skinCount = skinCount
     }
 }
 
-/// Professional tone and white-balance calibration engine adhering to Adobe Lightroom and classic nEOiMAGING (光影魔術手) standards.
+/// Professional tone, white-balance, and portrait beauty calibration engine adhering to Adobe Lightroom and classic nEOiMAGING (光影魔術手) standards.
 public enum AutoLightCorrector {
     
     /// Analyze an unnormalized raw bin count histogram (256 bins) to determine optimal exposure, contrast, highlights and shadows.
@@ -211,8 +258,8 @@ public enum AutoLightCorrector {
         )
     }
     
-    /// Multi-tier Quasi-Neutral and White-Patch Illuminant Estimator for Auto White Balance.
-    /// Accurately eliminates yellow and color casts without sterilizing natural scene ambiance.
+    /// Multi-tier Quasi-Neutral and White-Patch Illuminant Estimator for Auto White Balance with Skin Tone Protection.
+    /// Accurately eliminates yellow and color casts without sterilizing natural scene ambiance or human skin tones.
     public static func analyzeWhiteBalance(rgbResult: RGBAnalysisResult) -> (temperature: Float, tint: Float) {
         let minNeutralRequired = max(25, rgbResult.totalPixels / 200)
         let illR: Float
@@ -233,7 +280,26 @@ public enum AutoLightCorrector {
             illB = rgbResult.avgB
         }
         
-        return analyzeWhiteBalanceFromIlluminant(avgR: illR, avgG: illG, avgB: illB)
+        var (temp, tint) = analyzeWhiteBalanceFromIlluminant(avgR: illR, avgG: illG, avgB: illB)
+        
+        // Feature: Skin Tone Protection (protect warmth and rosiness of human skin)
+        if rgbResult.skinCount > max(30, rgbResult.totalPixels / 50) {
+            // Scene contains prominent human skin.
+            // Check if aggressive cooling would turn skin pale or cyan
+            let skinRG = rgbResult.skinAvgR / max(1.0, rgbResult.skinAvgG)
+            let skinBG = rgbResult.skinAvgB / max(1.0, rgbResult.skinAvgG)
+            
+            // If skin is already close to neutral or cool, avoid excessive negative temp
+            if temp < -200.0 && (skinRG - skinBG) < 0.40 {
+                // Dampen cooling to preserve natural skin tones
+                temp *= 0.65
+            }
+            
+            // Protect tint from excessive magenta or green that makes faces look sick
+            tint = max(-25.0, min(25.0, tint))
+        }
+        
+        return (temp, tint)
     }
     
     /// Legacy fallback method using direct RGB averages
