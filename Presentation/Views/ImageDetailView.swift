@@ -1415,11 +1415,11 @@ public struct MetalImageView: NSViewRepresentable {
                     processedImage = processedImage.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: params.exposure])
                 }
                 if abs(params.temperature) > 1.0 || abs(params.tint) > 1.0 {
-                    let neutralVector = CIVector(x: 6500, y: 0)
-                    let targetVector = CIVector(x: CGFloat(6500 + params.temperature), y: CGFloat(params.tint))
+                    let sourceNeutral = CIVector(x: CGFloat(6500 + params.temperature), y: CGFloat(params.tint))
+                    let targetNeutral = CIVector(x: 6500, y: 0)
                     processedImage = processedImage.applyingFilter("CITemperatureAndTint", parameters: [
-                        "inputNeutral": neutralVector,
-                        "inputTargetNeutral": targetVector
+                        "inputNeutral": sourceNeutral,
+                        "inputTargetNeutral": targetNeutral
                     ])
                 }
                 if abs(params.contrast - 1.0) > 0.001 {

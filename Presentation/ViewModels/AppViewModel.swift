@@ -597,28 +597,40 @@ public final class AppViewModel: ObservableObject {
         }
     }
     
-    /// Trigger Auto Light Correction calculation for a given ImageItem
+    /// Trigger Auto Light Correction calculation for a given ImageItem adhering to Lightroom standards
     public func applyAutoLightCorrection(for image: ImageItem) {
         let key = image.url.path
         
-        if let thumbnail = thumbnails[key] {
-            let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
+        let applyParams: (LightCorrectionParams) -> Void = { [weak self] rawParams in
+            guard let self = self else { return }
+            var params = rawParams
+            // Preserve user-adjusted or auto white balance if already applied
+            if let existing = self.lightCorrections[key] {
+                params.temperature = existing.temperature
+                params.tint = existing.tint
+            }
             self.lightCorrections[key] = params
             self.isAutoLightEnabled[key] = true
-            let evString = String(format: "%+.1f EV", params.exposure)
-            showToast("一鍵校光已套用 (曝光 \(evString), 對比 \(String(format: "%.2f", params.contrast)))")
+            let evString = String(format: "%+.2f EV", params.exposure)
+            self.showToast("一鍵校光已套用 (曝光 \(evString), 對比 \(String(format: "%.2f", params.contrast)))")
+        }
+        
+        if let thumbnail = thumbnails[key] {
+            let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail, includeWhiteBalance: false)
+            applyParams(params)
         } else {
             Task {
                 do {
                     let thumbnailSize = AppSettings.shared.rendering.thumbnailSize.width
                     let thumbnail = try await ImageLoaderService.shared.loadThumbnail(from: image.url, maxPixelSize: thumbnailSize)
-                    let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
-                    self.lightCorrections[key] = params
-                    self.isAutoLightEnabled[key] = true
-                    let evString = String(format: "%+.1f EV", params.exposure)
-                    self.showToast("一鍵校光已套用 (曝光 \(evString))")
+                    let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail, includeWhiteBalance: false)
+                    await MainActor.run {
+                        applyParams(params)
+                    }
                 } catch {
-                    self.showToast("校光計算失敗")
+                    await MainActor.run {
+                        self.showToast("校光計算失敗")
+                    }
                 }
             }
         }
@@ -636,7 +648,9 @@ public final class AppViewModel: ObservableObject {
             current.tint = wb.tint
             self.lightCorrections[key] = current
             self.isAutoLightEnabled[key] = true
-            self.showToast("自動白平衡: 色溫 \(Int(wb.temperature))K, 色調 \(Int(wb.tint))")
+            let tempSign = wb.temperature >= 0 ? "+\(Int(wb.temperature))" : "\(Int(wb.temperature))"
+            let tintSign = wb.tint >= 0 ? "+\(Int(wb.tint))" : "\(Int(wb.tint))"
+            self.showToast("自動白平衡: 色溫 \(tempSign)K, 色調 \(tintSign)")
         }
         
         if let thumbnail = thumbnails[key] {
@@ -648,9 +662,13 @@ public final class AppViewModel: ObservableObject {
                     let thumbnailSize = AppSettings.shared.rendering.thumbnailSize.width
                     let thumbnail = try await ImageLoaderService.shared.loadThumbnail(from: image.url, maxPixelSize: thumbnailSize)
                     let wb = ImageLoaderService.shared.calculateAutoWhiteBalance(for: thumbnail)
-                    applyWB(wb)
+                    await MainActor.run {
+                        applyWB(wb)
+                    }
                 } catch {
-                    self.showToast("白平衡計算失敗")
+                    await MainActor.run {
+                        self.showToast("白平衡計算失敗")
+                    }
                 }
             }
         }
@@ -722,7 +740,11 @@ public final class AppViewModel: ObservableObject {
                     guard let loaded = try? await ImageLoaderService.shared.loadThumbnail(from: item.url, maxPixelSize: 320) else { continue }
                     thumbnail = loaded
                 }
-                let params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail)
+                var params = ImageLoaderService.shared.calculateAutoLightCorrection(for: thumbnail, includeWhiteBalance: false)
+                if let existing = self.lightCorrections[key] {
+                    params.temperature = existing.temperature
+                    params.tint = existing.tint
+                }
                 self.lightCorrections[key] = params
                 self.isAutoLightEnabled[key] = true
                 processed += 1
@@ -2358,7 +2380,8 @@ public final class AppViewModel: ObservableObject {
                 }
                 
                 do {
-                    let newURL = try await convertSingleImageToHEIC(sourceURL: sourceURL)
+                    let correction = await MainActor.run { self.lightCorrections[sourceURL.path] }
+                    let newURL = try await convertSingleImageToHEIC(sourceURL: sourceURL, correction: correction)
                     lastNewURL = newURL
                     convertedCount += 1
                 } catch {
@@ -2384,7 +2407,7 @@ public final class AppViewModel: ObservableObject {
         }
     }
     
-    private func convertSingleImageToHEIC(sourceURL: URL, quality: Float = 0.92) async throws -> URL {
+    private func convertSingleImageToHEIC(sourceURL: URL, quality: Float = 0.92, correction: LightCorrectionParams? = nil) async throws -> URL {
         return try await Task.detached(priority: .userInitiated) {
             let targetDir = sourceURL.deletingLastPathComponent()
             let baseName = sourceURL.deletingPathExtension().lastPathComponent
@@ -2401,6 +2424,37 @@ public final class AppViewModel: ObservableObject {
                 throw NSError(domain: "HEICConversion", code: 2, userInfo: [NSLocalizedDescriptionKey: "無法解碼影像內容: \(sourceURL.lastPathComponent)"])
             }
             
+            var imageToEncode = cgImage
+            if let params = correction, !params.isNeutral {
+                var ci = CIImage(cgImage: cgImage)
+                if abs(params.exposure) > 0.001 {
+                    ci = ci.applyingFilter("CIExposureAdjust", parameters: [kCIInputEVKey: params.exposure])
+                }
+                if abs(params.temperature) > 1.0 || abs(params.tint) > 1.0 {
+                    let sourceNeutral = CIVector(x: CGFloat(6500 + params.temperature), y: CGFloat(params.tint))
+                    let targetNeutral = CIVector(x: 6500, y: 0)
+                    ci = ci.applyingFilter("CITemperatureAndTint", parameters: [
+                        "inputNeutral": sourceNeutral,
+                        "inputTargetNeutral": targetNeutral
+                    ])
+                }
+                if abs(params.contrast - 1.0) > 0.001 {
+                    ci = ci.applyingFilter("CIColorControls", parameters: [kCIInputContrastKey: params.contrast])
+                }
+                if abs(params.highlights) > 0.001 || abs(params.shadows) > 0.001 {
+                    let hlAmount = max(0.0, 1.0 + Double(params.highlights))
+                    let shAmount = max(0.0, Double(params.shadows))
+                    ci = ci.applyingFilter("CIHighlightShadowAdjust", parameters: [
+                        "inputHighlightAmount": hlAmount,
+                        "inputShadowAmount": shAmount
+                    ])
+                }
+                let ciContext = CIContext(options: SystemHardwareProfile.shared.createCIContextOptions())
+                if let processedCG = ciContext.createCGImage(ci, from: ci.extent) {
+                    imageToEncode = processedCG
+                }
+            }
+            
             guard let destination = CGImageDestinationCreateWithURL(tempDestURL as CFURL, UTType.heic.identifier as CFString, 1, nil) else {
                 throw NSError(domain: "HEICConversion", code: 3, userInfo: [NSLocalizedDescriptionKey: "系統不支援 HEIC 影像編碼"])
             }
@@ -2408,7 +2462,7 @@ public final class AppViewModel: ObservableObject {
             var options: [CFString: Any] = sourceProps
             options[kCGImageDestinationLossyCompressionQuality] = quality as CFNumber
             
-            CGImageDestinationAddImage(destination, cgImage, options as CFDictionary)
+            CGImageDestinationAddImage(destination, imageToEncode, options as CFDictionary)
             
             guard CGImageDestinationFinalize(destination) else {
                 try? FileManager.default.removeItem(at: tempDestURL)

@@ -126,7 +126,7 @@ public final class ImageLoaderService: Sendable {
         return bins.map { Float($0) / maxBin }
     }
     
-    /// Calculate raw bin counts and total pixel count sampled, along with average R, G, B values for White Balance
+    /// Calculate raw bin counts, total pixels, and multi-tier chromaticity pools for White Balance
     public func calculateRGBAnalysis(for cgImage: CGImage) -> RGBAnalysisResult {
         let width = min(cgImage.width, 256)
         let height = max(1, Int(Float(cgImage.height) * (Float(width) / Float(cgImage.width))))
@@ -157,6 +157,9 @@ public final class ImageLoaderService: Sendable {
         var sumG: Double = 0
         var sumB: Double = 0
         
+        var neutralR: Double = 0, neutralG: Double = 0, neutralB: Double = 0, neutralCount = 0
+        var wpR: Double = 0, wpG: Double = 0, wpB: Double = 0, wpCount = 0
+        
         for y in 0..<height {
             let rowOffset = y * bytesPerRow
             for x in 0..<width {
@@ -165,15 +168,42 @@ public final class ImageLoaderService: Sendable {
                 let g = pixelData[pixelOffset + 1]
                 let b = pixelData[pixelOffset + 2]
                 
+                let flR = Float(r)
+                let flG = Float(g)
+                let flB = Float(b)
+                
                 sumR += Double(r)
                 sumG += Double(g)
                 sumB += Double(b)
                 
                 // Standard Luminosity Formula: Y = 0.299R + 0.587G + 0.114B
-                let luminance = Int(0.299 * Float(r) + 0.587 * Float(g) + 0.114 * Float(b))
-                let clamped = max(0, min(255, luminance))
-                bins[clamped] += 1
+                let lum = 0.299 * flR + 0.587 * flG + 0.114 * flB
+                let clampedLum = max(0, min(255, Int(lum)))
+                bins[clampedLum] += 1
                 totalPixels += 1
+                
+                let maxC = max(flR, max(flG, flB))
+                let minC = min(flR, min(flG, flB))
+                let sat = maxC > 0 ? (maxC - minC) / maxC : 0
+                
+                // Filter noise and extreme highlights for illuminant candidates
+                if lum >= 15.0 && lum <= 252.0 {
+                    // Candidate Pool 1: Quasi-neutral gray surface candidates (low saturation)
+                    if sat < 0.16 && lum >= 28.0 && lum <= 235.0 {
+                        neutralR += Double(r)
+                        neutralG += Double(g)
+                        neutralB += Double(b)
+                        neutralCount += 1
+                    }
+                    
+                    // Candidate Pool 2: White-patch specular highlights
+                    if lum >= 195.0 && lum <= 250.0 && sat < 0.25 {
+                        wpR += Double(r)
+                        wpG += Double(g)
+                        wpB += Double(b)
+                        wpCount += 1
+                    }
+                }
             }
         }
         
@@ -181,7 +211,29 @@ public final class ImageLoaderService: Sendable {
         let avgG = totalPixels > 0 ? Float(sumG / Double(totalPixels)) : 128.0
         let avgB = totalPixels > 0 ? Float(sumB / Double(totalPixels)) : 128.0
         
-        return RGBAnalysisResult(histogram: bins, totalPixels: totalPixels, avgR: avgR, avgG: avgG, avgB: avgB)
+        let nR = neutralCount > 0 ? Float(neutralR / Double(neutralCount)) : 128.0
+        let nG = neutralCount > 0 ? Float(neutralG / Double(neutralCount)) : 128.0
+        let nB = neutralCount > 0 ? Float(neutralB / Double(neutralCount)) : 128.0
+        
+        let wR = wpCount > 0 ? Float(wpR / Double(wpCount)) : 128.0
+        let wG = wpCount > 0 ? Float(wpG / Double(wpCount)) : 128.0
+        let wB = wpCount > 0 ? Float(wpB / Double(wpCount)) : 128.0
+        
+        return RGBAnalysisResult(
+            histogram: bins,
+            totalPixels: totalPixels,
+            avgR: avgR,
+            avgG: avgG,
+            avgB: avgB,
+            neutralAvgR: nR,
+            neutralAvgG: nG,
+            neutralAvgB: nB,
+            neutralCount: neutralCount,
+            whitePatchAvgR: wR,
+            whitePatchAvgG: wG,
+            whitePatchAvgB: wB,
+            whitePatchCount: wpCount
+        )
     }
     
     public func calculateRawLuminanceHistogram(for cgImage: CGImage) -> (bins: [Int], totalPixels: Int) {
@@ -190,7 +242,7 @@ public final class ImageLoaderService: Sendable {
     }
     
     /// Automatically analyze CGImage and return optimal Lightroom-like tone and white balance parameters
-    public func calculateAutoLightCorrection(for cgImage: CGImage, includeWhiteBalance: Bool = true) -> LightCorrectionParams {
+    public func calculateAutoLightCorrection(for cgImage: CGImage, includeWhiteBalance: Bool = false) -> LightCorrectionParams {
         let analysis = calculateRGBAnalysis(for: cgImage)
         if includeWhiteBalance {
             return AutoLightCorrector.analyzeFull(rgbResult: analysis)
@@ -199,10 +251,10 @@ public final class ImageLoaderService: Sendable {
         }
     }
     
-    /// Calculate Auto White Balance parameters only
+    /// Calculate Auto White Balance parameters using multi-tier quasi-neutral illuminant estimation
     public func calculateAutoWhiteBalance(for cgImage: CGImage) -> (temperature: Float, tint: Float) {
         let analysis = calculateRGBAnalysis(for: cgImage)
-        return AutoLightCorrector.analyzeWhiteBalance(avgR: analysis.avgR, avgG: analysis.avgG, avgB: analysis.avgB)
+        return AutoLightCorrector.analyzeWhiteBalance(rgbResult: analysis)
     }
 }
 

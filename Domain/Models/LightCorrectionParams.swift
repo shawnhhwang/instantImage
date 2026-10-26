@@ -43,6 +43,7 @@ public struct LightCorrectionParams: Equatable, Hashable, Sendable {
     }
 }
 
+/// Comprehensive photographic analysis results capturing luminance histograms and multi-zone chrominance candidates.
 public struct RGBAnalysisResult: Sendable {
     public let histogram: [Int]
     public let totalPixels: Int
@@ -50,79 +51,154 @@ public struct RGBAnalysisResult: Sendable {
     public let avgG: Float
     public let avgB: Float
     
-    public init(histogram: [Int], totalPixels: Int, avgR: Float, avgG: Float, avgB: Float) {
+    // Quasi-neutral candidate pool (Low chroma / near-gray reference surfaces)
+    public let neutralAvgR: Float
+    public let neutralAvgG: Float
+    public let neutralAvgB: Float
+    public let neutralCount: Int
+    
+    // White-patch specular candidate pool (High luminance, low saturation)
+    public let whitePatchAvgR: Float
+    public let whitePatchAvgG: Float
+    public let whitePatchAvgB: Float
+    public let whitePatchCount: Int
+    
+    public init(
+        histogram: [Int],
+        totalPixels: Int,
+        avgR: Float,
+        avgG: Float,
+        avgB: Float,
+        neutralAvgR: Float = 128.0,
+        neutralAvgG: Float = 128.0,
+        neutralAvgB: Float = 128.0,
+        neutralCount: Int = 0,
+        whitePatchAvgR: Float = 128.0,
+        whitePatchAvgG: Float = 128.0,
+        whitePatchAvgB: Float = 128.0,
+        whitePatchCount: Int = 0
+    ) {
         self.histogram = histogram
         self.totalPixels = totalPixels
         self.avgR = avgR
         self.avgG = avgG
         self.avgB = avgB
+        self.neutralAvgR = neutralAvgR
+        self.neutralAvgG = neutralAvgG
+        self.neutralAvgB = neutralAvgB
+        self.neutralCount = neutralCount
+        self.whitePatchAvgR = whitePatchAvgR
+        self.whitePatchAvgG = whitePatchAvgG
+        self.whitePatchAvgB = whitePatchAvgB
+        self.whitePatchCount = whitePatchCount
     }
 }
 
+/// Professional tone and white-balance calibration engine adhering to Adobe Lightroom and classic nEOiMAGING (光影魔術手) standards.
 public enum AutoLightCorrector {
+    
     /// Analyze an unnormalized raw bin count histogram (256 bins) to determine optimal exposure, contrast, highlights and shadows.
+    /// Incorporates Ansel Adams Zone System midtone calibration, highlight headroom protection, and filmic rolloff.
     public static func analyze(histogram: [Int], totalPixelCount: Int) -> LightCorrectionParams {
         guard totalPixelCount > 0 else { return .neutral }
         
         var cumulative = 0
+        var p05: Float = 0    // 0.5th percentile (extreme black floor)
         var p1: Float = 0     // 1st percentile (shadow clipping)
         var p5: Float = 0     // 5th percentile
-        var p50: Float = 128  // median luminance (middle gray)
-        var p95: Float = 255  // 95th percentile
-        var p99: Float = 255  // 99th percentile (highlight clipping)
+        var p10: Float = 0    // 10th percentile (lower midtones)
+        var p25: Float = 0    // 25th percentile
+        var p50: Float = 128  // 50th percentile (median luminance)
+        var p75: Float = 180  // 75th percentile
+        var p90: Float = 220  // 90th percentile
+        var p95: Float = 240  // 95th percentile
+        var p98: Float = 250  // 98th percentile (highlight ceiling)
+        var p995: Float = 255 // 99.5th percentile (specular peak)
         
         var sumLuminance: Double = 0
+        var shadowPixelCount = 0
+        var highlightPixelCount = 0
         
         for (binIndex, count) in histogram.enumerated() {
+            let lum = Float(binIndex)
             sumLuminance += Double(binIndex * count)
             cumulative += count
             let ratio = Float(cumulative) / Float(totalPixelCount)
             
-            if p1 == 0 && ratio >= 0.01 { p1 = Float(binIndex) }
-            if p5 == 0 && ratio >= 0.05 { p5 = Float(binIndex) }
-            if p50 == 128 && ratio >= 0.50 { p50 = Float(binIndex) }
-            if p95 == 255 && ratio >= 0.95 { p95 = Float(binIndex) }
-            if p99 == 255 && ratio >= 0.99 { p99 = Float(binIndex) }
+            if p05 == 0 && ratio >= 0.005 { p05 = lum }
+            if p1 == 0 && ratio >= 0.01 { p1 = lum }
+            if p5 == 0 && ratio >= 0.05 { p5 = lum }
+            if p10 == 0 && ratio >= 0.10 { p10 = lum }
+            if p25 == 0 && ratio >= 0.25 { p25 = lum }
+            if p50 == 128 && ratio >= 0.50 { p50 = lum }
+            if p75 == 180 && ratio >= 0.75 { p75 = lum }
+            if p90 == 220 && ratio >= 0.90 { p90 = lum }
+            if p95 == 240 && ratio >= 0.95 { p95 = lum }
+            if p98 == 250 && ratio >= 0.98 { p98 = lum }
+            if p995 == 255 && ratio >= 0.995 { p995 = lum }
+            
+            if binIndex < 35 { shadowPixelCount += count }
+            if binIndex > 220 { highlightPixelCount += count }
         }
         
         let meanLuminance = Float(sumLuminance / Double(totalPixelCount))
-        let targetMidtone: Float = 118.0
+        let shadowFrac = Float(shadowPixelCount) / Float(totalPixelCount)
+        let highlightFrac = Float(highlightPixelCount) / Float(totalPixelCount)
+        let midtoneCurrent = (p50 * 0.65) + (meanLuminance * 0.35)
         
-        // 1. Exposure calculation (EV stops)
-        let midtoneCurrent = (p50 * 0.6) + (meanLuminance * 0.4)
+        // 1. Dynamic Scene Key Detection (Low-key / Mid-key / High-key)
+        // Calibrated to 104.0 for standard sRGB scenes (~18% reflectance perceptual display gamma)
+        var targetMidtone: Float = 104.0
+        if shadowFrac > 0.45 && p50 < 75.0 {
+            // Low-key / dark background: preserve mood and avoid washing out darks
+            targetMidtone = max(68.0, p50 * 1.15)
+        } else if highlightFrac > 0.35 && p50 > 135.0 {
+            // High-key / snow / bright studio scene: avoid dulling highlights
+            targetMidtone = min(138.0, p50 * 0.96)
+        }
+        
+        // 2. Exposure with Highlight Headroom Guard (Prevents Over-brightening & Clipping)
+        let rawEV = log2(targetMidtone / max(12.0, midtoneCurrent))
         var exposureEV: Float = 0.0
         
-        if midtoneCurrent > 5.0 {
-            let ratio = targetMidtone / max(10.0, midtoneCurrent)
-            exposureEV = log2(ratio)
-            exposureEV = max(-1.5, min(1.8, exposureEV))
-        }
+        // Headroom ceiling: p98 must not be pushed past 250
+        let maxSafeEV = p98 > 180.0 ? max(0.0, log2(250.0 / p98)) : 0.75
         
-        // 2. Shadows recovery:
-        var shadows: Float = 0.0
-        if p5 < 25.0 {
-            let shadowDeficit = (25.0 - p5) / 25.0
-            shadows = min(0.65, shadowDeficit * 0.75)
-        } else if p5 > 50.0 && midtoneCurrent > 120.0 {
-            shadows = -0.15
+        if rawEV > 0 {
+            // Brighten with progressive logarithmic damping and strict headroom guard
+            exposureEV = min(rawEV * 0.55, maxSafeEV)
+            exposureEV = min(0.65, exposureEV)
+        } else {
+            // Darken overexposed image with responsive correction
+            exposureEV = max(-1.15, rawEV * 0.70)
         }
+        if abs(exposureEV) < 0.04 { exposureEV = 0.0 }
         
-        // 3. Highlights recovery:
+        // 3. Filmic Highlight Recovery (nEOiMAGING / Lightroom highlight preservation)
         var highlights: Float = 0.0
-        if p95 > 235.0 || p99 > 250.0 {
-            let highlightExcess = (p95 - 220.0) / 35.0
-            highlights = -min(0.75, max(0.1, highlightExcess * 0.65))
-        } else if p95 < 180.0 && exposureEV > 0.0 {
-            highlights = 0.15
+        if p95 > 225.0 || p995 > 248.0 {
+            let excess = (p95 - 215.0) / 40.0
+            highlights = -min(0.38, max(0.08, excess * 0.35))
+        } else if p95 < 170.0 && exposureEV > 0.10 {
+            highlights = 0.10
         }
         
-        // 4. Contrast:
+        // 4. Shadows & Black Point Anchor (Prevents foggy blacks while rescuing crushed shadows)
+        var shadows: Float = 0.0
+        if p10 < 20.0 && p1 < 8.0 {
+            let deficit = (20.0 - p10) / 20.0
+            shadows = min(0.30, deficit * 0.32)
+        } else if p1 > 22.0 && shadowFrac < 0.08 {
+            shadows = -min(0.15, (p1 - 18.0) / 35.0)
+        }
+        
+        // 5. Dynamic Micro-Contrast Adjustment
         let dynamicRange = p95 - p5
         var contrast: Float = 1.0
-        if dynamicRange < 110.0 {
-            contrast = min(1.35, 1.0 + (110.0 - dynamicRange) / 200.0)
-        } else if dynamicRange > 220.0 {
-            contrast = max(0.88, 1.0 - (dynamicRange - 220.0) / 300.0)
+        if dynamicRange < 125.0 {
+            contrast = min(1.18, 1.0 + (125.0 - dynamicRange) / 220.0)
+        } else if dynamicRange > 225.0 {
+            contrast = max(0.92, 1.0 - (dynamicRange - 225.0) / 350.0)
         }
         
         return LightCorrectionParams(
@@ -135,28 +211,64 @@ public enum AutoLightCorrector {
         )
     }
     
-    /// Gray World algorithm to calculate Auto White Balance (Temperature and Tint offsets)
+    /// Multi-tier Quasi-Neutral and White-Patch Illuminant Estimator for Auto White Balance.
+    /// Accurately eliminates yellow and color casts without sterilizing natural scene ambiance.
+    public static func analyzeWhiteBalance(rgbResult: RGBAnalysisResult) -> (temperature: Float, tint: Float) {
+        let minNeutralRequired = max(25, rgbResult.totalPixels / 200)
+        let illR: Float
+        let illG: Float
+        let illB: Float
+        
+        if rgbResult.neutralCount >= minNeutralRequired {
+            illR = rgbResult.neutralAvgR
+            illG = rgbResult.neutralAvgG
+            illB = rgbResult.neutralAvgB
+        } else if rgbResult.whitePatchCount >= 20 {
+            illR = rgbResult.whitePatchAvgR
+            illG = rgbResult.whitePatchAvgG
+            illB = rgbResult.whitePatchAvgB
+        } else {
+            illR = rgbResult.avgR
+            illG = rgbResult.avgG
+            illB = rgbResult.avgB
+        }
+        
+        return analyzeWhiteBalanceFromIlluminant(avgR: illR, avgG: illG, avgB: illB)
+    }
+    
+    /// Legacy fallback method using direct RGB averages
     public static func analyzeWhiteBalance(avgR: Float, avgG: Float, avgB: Float) -> (temperature: Float, tint: Float) {
+        return analyzeWhiteBalanceFromIlluminant(avgR: avgR, avgG: avgG, avgB: avgB)
+    }
+    
+    private static func analyzeWhiteBalanceFromIlluminant(avgR: Float, avgG: Float, avgB: Float) -> (temperature: Float, tint: Float) {
         guard avgG > 1.0 else { return (0.0, 0.0) }
         
-        // Target: Gray world assumes average R, G, B should be roughly balanced
-        // R / G ratio reflects Color Temperature (cool < 1.0 < warm)
-        // B / G ratio reflects Blue component
         let rRatio = avgR / avgG
         let bRatio = avgB / avgG
         
-        // If R > B, image has warm/amber cast -> shift cooler (negative temperature)
-        // If B > R, image has cool/blue cast -> shift warmer (positive temperature)
-        let tempDiff = bRatio - rRatio // positive means too blue, negative means too orange
-        var targetTemp = tempDiff * 1400.0
-        targetTemp = max(-1800.0, min(1800.0, targetTemp))
+        // Color Cast Delta:
+        // In our unified Lightroom convention (matching inputNeutral = 6500 + tempOffset):
+        // If image has warm/yellow cast (R > B): (bRatio - rRatio) is negative.
+        // A negative tempOffset shifts cooler (adds blue), neutralizing the yellow cast!
+        // If image has cool/blue cast (B > R): (bRatio - rRatio) is positive.
+        // A positive tempOffset shifts warmer (adds amber), neutralizing the blue cast!
+        let colorCast = bRatio - rRatio
+        
+        // Apply 78% perceptual chromatic adaptation (Lightroom standard preserves natural warmth)
+        let damping: Float = 0.78
+        var targetTemp = colorCast * 1800.0 * damping
+        targetTemp = max(-1400.0, min(1400.0, targetTemp))
+        if abs(targetTemp) < 15.0 { targetTemp = 0.0 }
         
         // Tint: Green vs Magenta balance
-        // Expected G ~= (R + B) / 2. If G is higher -> green cast (need magenta / positive tint)
+        // If G is higher than expected -> green cast -> positive tint (magenta correction)
+        // If G is lower than expected -> magenta cast -> negative tint (green correction)
         let expectedG = (avgR + avgB) * 0.5
         let tintDiff = (expectedG - avgG) / max(1.0, avgG)
-        var targetTint = tintDiff * 60.0
-        targetTint = max(-60.0, min(60.0, targetTint))
+        var targetTint = tintDiff * 70.0 * damping
+        targetTint = max(-45.0, min(45.0, targetTint))
+        if abs(targetTint) < 1.0 { targetTint = 0.0 }
         
         return (targetTemp, targetTint)
     }
@@ -164,7 +276,7 @@ public enum AutoLightCorrector {
     /// Full analysis of both light exposure and auto white balance
     public static func analyzeFull(rgbResult: RGBAnalysisResult) -> LightCorrectionParams {
         var params = analyze(histogram: rgbResult.histogram, totalPixelCount: rgbResult.totalPixels)
-        let (temp, tint) = analyzeWhiteBalance(avgR: rgbResult.avgR, avgG: rgbResult.avgG, avgB: rgbResult.avgB)
+        let (temp, tint) = analyzeWhiteBalance(rgbResult: rgbResult)
         params.temperature = temp
         params.tint = tint
         return params
