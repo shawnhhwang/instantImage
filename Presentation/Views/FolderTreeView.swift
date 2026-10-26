@@ -4,6 +4,7 @@ import AppKit
 public struct FolderTreeView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var hoveredSubfolder: URL? = nil
+    @State private var isDropTargeted: Bool = false
     
     public init(viewModel: AppViewModel) {
         self.viewModel = viewModel
@@ -34,10 +35,11 @@ public struct FolderTreeView: View {
                 .padding(.horizontal, 14)
                 .padding(.bottom, 6)
             
-            // MARK: - Sidebar Scroll Area (Favorites, Destination, Subfolders)
+            // MARK: - Sidebar Scroll Area (Favorites, Recents, Destination, Subfolders)
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
                     favoritesSection
+                    recentFoldersSection
                     cullingDestinationSection
                     subfoldersSection
                 }
@@ -62,6 +64,20 @@ public struct FolderTreeView: View {
             }
             .edgesIgnoringSafeArea(.all)
         )
+        .onDrop(of: ["public.file-url"], isTargeted: $isDropTargeted) { providers in
+            guard let provider = providers.first else { return false }
+            _ = provider.loadObject(ofClass: URL.self) { url, _ in
+                if let droppedURL = url {
+                    var isDir: ObjCBool = false
+                    if FileManager.default.fileExists(atPath: droppedURL.path, isDirectory: &isDir), isDir.boolValue {
+                        DispatchQueue.main.async {
+                            viewModel.selectFolder(droppedURL)
+                        }
+                    }
+                }
+            }
+            return true
+        }
     }
     
     // MARK: - Brand Header
@@ -132,32 +148,31 @@ public struct FolderTreeView: View {
             HStack(spacing: 10) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 8, style: .continuous)
-                        .fill(LuminaTheme.Colors.cyanAccent.opacity(0.16))
+                        .fill(LuminaTheme.Colors.cyanAccent.opacity(isDropTargeted ? 0.35 : 0.16))
                         .frame(width: 32, height: 32)
                     
-                    Image(systemName: "folder.badge.plus")
+                    Image(systemName: isDropTargeted ? "arrow.down.doc.fill" : "folder.badge.plus")
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(LuminaTheme.Colors.cyanAccent)
                 }
                 
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 1.5) {
                     Text("開啟影像資料夾")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(LuminaTheme.Colors.textPrimary)
-                    Text("支援 RAW / JPEG / HEIC 零延遲檢視")
+                    Text(isDropTargeted ? "放開滑鼠即可開啟資料夾" : "支援拖放資料夾至此 • RAW / HEIC")
                         .font(.system(size: 9.5))
-                        .foregroundColor(LuminaTheme.Colors.textTertiary)
+                        .foregroundColor(isDropTargeted ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textTertiary)
                 }
                 
                 Spacer()
                 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(LuminaTheme.Colors.textMuted)
+                LuminaKeycap("⌘O", isAccent: isDropTargeted)
             }
             .padding(.vertical, 8)
             .padding(.horizontal, 10)
-            .luminaGlass(cornerRadius: LuminaTheme.Radius.md, isElevated: true, strokeColor: LuminaTheme.Colors.borderMedium)
+            .luminaGlass(cornerRadius: LuminaTheme.Radius.md, isElevated: true, strokeColor: isDropTargeted ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.borderMedium)
+            .animation(.spring(response: 0.2, dampingFraction: 0.75), value: isDropTargeted)
         }
         .buttonStyle(PlainButtonStyle())
     }
@@ -166,9 +181,14 @@ public struct FolderTreeView: View {
     private func activeDirectoryCard(for root: URL) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
-                Image(systemName: "folder.fill")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(LuminaTheme.Colors.amberGold)
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .fill(LuminaTheme.Colors.amberGold.opacity(0.18))
+                        .frame(width: 24, height: 24)
+                    Image(systemName: "folder.fill")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(LuminaTheme.Colors.amberGold)
+                }
                 
                 Text(root.lastPathComponent)
                     .font(.system(size: 12, weight: .bold))
@@ -185,6 +205,7 @@ public struct FolderTreeView: View {
                     Image(systemName: "arrow.up.right.square")
                         .font(.system(size: 11))
                         .foregroundColor(LuminaTheme.Colors.textTertiary)
+                        .padding(3)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .help("在 Finder 中顯示")
@@ -197,6 +218,7 @@ public struct FolderTreeView: View {
                     Image(systemName: isFav ? "star.fill" : "star")
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(isFav ? LuminaTheme.Colors.amberGold : LuminaTheme.Colors.textTertiary)
+                        .padding(3)
                         .luminaGlow(color: LuminaTheme.Colors.amberGold, radius: 4, isActive: isFav)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -204,12 +226,17 @@ public struct FolderTreeView: View {
             }
             
             // Directory Stats Pills
-            HStack(spacing: 6) {
-                LuminaBadge("\(viewModel.images.count) 張影像", icon: "photo.stack", color: LuminaTheme.Colors.cyanAccent)
+            HStack(spacing: 5) {
+                LuminaBadge("\(viewModel.images.count) 張", icon: "photo.stack", color: LuminaTheme.Colors.cyanAccent)
+                
+                let rawCount = viewModel.images.filter { ["cr2", "nef", "arw", "dng", "raw"].contains($0.url.pathExtension.lowercased()) }.count
+                if rawCount > 0 {
+                    LuminaBadge("\(rawCount) RAW", color: LuminaTheme.Colors.electricIndigo)
+                }
                 
                 let taggedCount = viewModel.images.filter { viewModel.exifMetadata[$0.url.path]?.isTagged == true }.count
                 if taggedCount > 0 {
-                    LuminaBadge("\(taggedCount) 已標記", icon: "flag.fill", color: LuminaTheme.Colors.neonCoral)
+                    LuminaBadge("\(taggedCount) 標記", icon: "flag.fill", color: LuminaTheme.Colors.neonCoral)
                 }
                 
                 Spacer()
@@ -244,6 +271,59 @@ public struct FolderTreeView: View {
                 )
                 .shadow(color: LuminaTheme.Shadows.ambient, radius: 4, x: 0, y: 1)
         )
+    }
+    
+    // MARK: - Recent Folders Section
+    private var recentFoldersSection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            sectionHeader(title: "最近開啟資料夾", icon: "clock.arrow.circlepath", iconColor: LuminaTheme.Colors.cyanAccent)
+            
+            if viewModel.recentFolders.isEmpty {
+                Text("尚無近期開啟記錄")
+                    .font(.system(size: 10))
+                    .foregroundColor(LuminaTheme.Colors.textMuted)
+                    .padding(.leading, 6)
+                    .padding(.vertical, 4)
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(viewModel.recentFolders.prefix(5), id: \.self) { recentURL in
+                        let isSelected = viewModel.selectedFolder == recentURL
+                        
+                        Button(action: {
+                            viewModel.selectFolder(recentURL)
+                        }) {
+                            HStack(spacing: 7) {
+                                Image(systemName: isSelected ? "folder.fill" : "folder")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(isSelected ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textTertiary)
+                                
+                                Text(recentURL.lastPathComponent)
+                                    .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                                    .foregroundColor(isSelected ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textSecondary)
+                                    .lineLimit(1)
+                                
+                                Spacer()
+                            }
+                            .padding(.vertical, 4.5)
+                            .padding(.horizontal, 8)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(isSelected ? LuminaTheme.Colors.cyanAccent.opacity(0.12) : Color.clear)
+                            )
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .contextMenu {
+                            Button("在 Finder 中顯示") {
+                                NSWorkspace.shared.activateFileViewerSelecting([recentURL])
+                            }
+                            Button("加入我的最愛") {
+                                viewModel.toggleFavorite(recentURL)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - Favorites Section

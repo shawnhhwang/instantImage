@@ -126,48 +126,53 @@ public struct ImageDetailView: View {
     
     // MARK: - Top Floating Dynamic Island
     private func topFloatingIsland(for selectedImage: ImageItem, key: String) -> some View {
-        HStack(spacing: 12) {
-            // Close Button
-            LuminaIconButton(
-                icon: "xmark",
-                title: "關閉詳細檢視",
-                shortcut: "ESC",
-                size: 34,
-                iconSize: 12
-            ) {
-                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
-                    viewModel.isDetailActive = false
-                }
-            }
-            
-            // Filename & Index Pill
+        HStack(spacing: 10) {
+            // Left Group: Close Button & Filename Badge
             HStack(spacing: 8) {
-                Text(selectedImage.filename)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(LuminaTheme.Colors.textPrimary)
-                    .lineLimit(1)
-                
-                if let curIdx = viewModel.selectedImageIndex {
-                    Text("\(curIdx + 1) / \(viewModel.displayedImages.count)")
-                        .font(.system(size: 10, weight: .heavy, design: .monospaced))
-                        .foregroundColor(LuminaTheme.Colors.cyanAccent)
-                        .padding(.vertical, 1.5)
-                        .padding(.horizontal, 6)
-                        .background(
-                            Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.18))
-                        )
+                LuminaIconButton(
+                    icon: "xmark",
+                    title: "關閉詳細檢視",
+                    shortcut: "ESC",
+                    size: 32,
+                    iconSize: 11
+                ) {
+                    withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                        viewModel.isDetailActive = false
+                    }
                 }
+                
+                HStack(spacing: 7) {
+                    Text(selectedImage.filename)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(LuminaTheme.Colors.textPrimary)
+                        .lineLimit(1)
+                    
+                    Text(selectedImage.url.pathExtension.uppercased())
+                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                        .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                        .padding(.vertical, 1)
+                        .padding(.horizontal, 4.5)
+                        .background(
+                            Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.14))
+                        )
+                    
+                    if let curIdx = viewModel.selectedImageIndex {
+                        Text("\(curIdx + 1) / \(viewModel.displayedImages.count)")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(LuminaTheme.Colors.textTertiary)
+                    }
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal, 11)
+                .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
             }
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
             
             Spacer()
             
-            // Darkroom Control Cluster
-            HStack(spacing: 6) {
-                let isAutoActive = viewModel.isAutoLightEnabled[key] ?? false
-                
+            let isAutoActive = viewModel.isAutoLightEnabled[key] ?? false
+            
+            // Pod 1: AI & Enhancement Engine
+            HStack(spacing: 5) {
                 // One-Click Auto Light Button
                 LuminaPillButton(
                     icon: isAutoActive ? "wand.and.stars" : "wand.and.stars.inverse",
@@ -227,15 +232,23 @@ public struct ImageDetailView: View {
                         viewModel.convertSelectedImagesToHEIC()
                     }
                 }
-                
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 5)
+            .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
+            
+            // Pod 2: Proofing & Inspection Tools
+            HStack(spacing: 4) {
                 // Before/After Split Curtain
                 if isAutoActive {
-                    LuminaPillButton(
+                    LuminaIconButton(
                         icon: "square.split.2x1",
-                        label: viewModel.isBeforeAfterComparisonActive ? "分割中" : "前後對比",
-                        isSelected: viewModel.isBeforeAfterComparisonActive,
-                        selectedColor: LuminaTheme.Colors.cyanAccent,
-                        shortcut: "\\"
+                        title: viewModel.isBeforeAfterComparisonActive ? "關閉前後對比分割簾" : "開啟前後對比分割簾",
+                        shortcut: "\\",
+                        isActive: viewModel.isBeforeAfterComparisonActive,
+                        activeColor: LuminaTheme.Colors.cyanAccent,
+                        size: 32,
+                        iconSize: 12
                     ) {
                         viewModel.isBeforeAfterComparisonActive.toggle()
                         viewModel.showToast(viewModel.isBeforeAfterComparisonActive ? "已開啟前後對比分割簾 (\\)" : "已關閉前後對比")
@@ -249,8 +262,8 @@ public struct ImageDetailView: View {
                     shortcut: "J",
                     isActive: viewModel.isClippingWarningActive,
                     activeColor: LuminaTheme.Colors.neonCoral,
-                    size: 34,
-                    iconSize: 12
+                    size: 32,
+                    iconSize: 11
                 ) {
                     viewModel.toggleClippingWarning()
                 }
@@ -262,8 +275,8 @@ public struct ImageDetailView: View {
                     shortcut: "L",
                     isActive: viewModel.isLoupeEnabled,
                     activeColor: LuminaTheme.Colors.cyanAccent,
-                    size: 34,
-                    iconSize: 13
+                    size: 32,
+                    iconSize: 12
                 ) {
                     viewModel.isLoupeEnabled.toggle()
                     viewModel.showToast(viewModel.isLoupeEnabled ? "已開啟放大鏡 (L)" : "已關閉放大鏡")
@@ -276,12 +289,18 @@ public struct ImageDetailView: View {
                     shortcut: "Z",
                     isActive: viewModel.isZoomed,
                     activeColor: LuminaTheme.Colors.cyanAccent,
-                    size: 34,
-                    iconSize: 12
+                    size: 32,
+                    iconSize: 11
                 ) {
                     viewModel.toggleZoom()
                 }
-                
+            }
+            .padding(.vertical, 3)
+            .padding(.horizontal, 5)
+            .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
+            
+            // Pod 3: Viewport & Workspace Controls
+            HStack(spacing: 4) {
                 // Filmstrip Toggle
                 LuminaIconButton(
                     icon: "film",
@@ -289,8 +308,8 @@ public struct ImageDetailView: View {
                     shortcut: "B",
                     isActive: viewModel.isFilmstripVisible,
                     activeColor: LuminaTheme.Colors.cyanAccent,
-                    size: 34,
-                    iconSize: 12
+                    size: 32,
+                    iconSize: 11
                 ) {
                     withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
                         viewModel.isFilmstripVisible.toggle()
@@ -304,8 +323,8 @@ public struct ImageDetailView: View {
                     shortcut: "I",
                     isActive: viewModel.isSidebarOpenInDetail,
                     activeColor: LuminaTheme.Colors.cyanAccent,
-                    size: 34,
-                    iconSize: 12
+                    size: 32,
+                    iconSize: 11
                 ) {
                     withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
                         viewModel.isSidebarOpenInDetail.toggle()
@@ -320,14 +339,14 @@ public struct ImageDetailView: View {
                     shortcut: "F",
                     isActive: isFullScreen,
                     activeColor: LuminaTheme.Colors.cyanAccent,
-                    size: 34,
-                    iconSize: 12
+                    size: 32,
+                    iconSize: 11
                 ) {
                     viewModel.toggleFullScreen()
                 }
             }
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
+            .padding(.vertical, 3)
+            .padding(.horizontal, 5)
             .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
         }
     }
@@ -679,6 +698,21 @@ public struct DetailsSidebarView: View {
                     .foregroundColor(LuminaTheme.Colors.textTertiary)
                 
                 Spacer()
+                
+                if !currentParams.isNeutral {
+                    Button("全部重設") {
+                        viewModel.resetLightCorrectionForSelected()
+                    }
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.neonCoral)
+                    .padding(.vertical, 3)
+                    .padding(.horizontal, 7)
+                    .background(
+                        Capsule().fill(LuminaTheme.Colors.neonCoral).opacity(0.12)
+                    )
+                    .buttonStyle(PlainButtonStyle())
+                    .help("重設所有調光參數至預設值")
+                }
                 
                 Button(action: {
                     viewModel.toggleAutoLightForSelected()

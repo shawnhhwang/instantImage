@@ -5,6 +5,9 @@ public struct FaceSwapBatchReviewView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var splitCurtainPosition: CGFloat = 0.5
     @State private var showCompleteSheet: Bool = false
+    @State private var isZoomed: Bool = false
+    @State private var zoomOffset: CGSize = .zero
+    @State private var dragOffset: CGSize = .zero
     
     public init(viewModel: AppViewModel) {
         self.viewModel = viewModel
@@ -120,7 +123,7 @@ public struct FaceSwapBatchReviewView: View {
     
     // MARK: - 1. Top Navigation Bar
     private var topNavigationBar: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             // Apply Decisions & Finish button
             Button(action: {
                 viewModel.applyBatchDecisionsAndFinish()
@@ -147,15 +150,17 @@ public struct FaceSwapBatchReviewView: View {
             Button(action: {
                 viewModel.closeFaceSwapBatchReview()
             }) {
-                HStack(spacing: 4) {
+                HStack(spacing: 5) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 11, weight: .bold))
-                    Text("返回相片瀏覽 (⌘R / Esc)")
+                        .font(.system(size: 10, weight: .bold))
+                    Text("返回相片瀏覽")
                         .font(.system(size: 11.5, weight: .medium))
+                    LuminaKeycap("⌘R")
+                    LuminaKeycap("⎋")
                 }
                 .foregroundColor(LuminaTheme.Colors.textPrimary)
-                .padding(.vertical, 6)
-                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .padding(.horizontal, 9)
                 .background(
                     Capsule()
                         .fill(Color.black.opacity(0.06))
@@ -170,75 +175,96 @@ public struct FaceSwapBatchReviewView: View {
                     .foregroundColor(LuminaTheme.Colors.electricIndigo)
                 
                 Text("相片 \(currentIndex + 1) / \(max(1, totalCount))")
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(LuminaTheme.Colors.textPrimary)
                 
                 if let item = currentItem {
                     Text("•  \(item.filename)")
-                        .font(.system(size: 12, design: .monospaced))
+                        .font(.system(size: 11, design: .monospaced))
                         .foregroundColor(LuminaTheme.Colors.textSecondary)
                 }
             }
             .padding(.vertical, 5)
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 11)
             .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
             
             // Decision Summary Counters
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 HStack(spacing: 4) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(LuminaTheme.Colors.mintEmerald)
-                    Text("標記儲存: \(savedCount)")
+                    Text("儲存: \(savedCount)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(LuminaTheme.Colors.textPrimary)
                 }
                 .padding(.vertical, 4)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 7)
                 .background(Capsule().fill(LuminaTheme.Colors.mintEmerald.opacity(0.12)))
                 
                 HStack(spacing: 4) {
                     Image(systemName: "arrow.uturn.backward.circle.fill")
                         .foregroundColor(LuminaTheme.Colors.textTertiary)
-                    Text("保持原圖: \(keptOriginalCount)")
+                    Text("原圖: \(keptOriginalCount)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(LuminaTheme.Colors.textPrimary)
                 }
                 .padding(.vertical, 4)
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 7)
                 .background(Capsule().fill(Color.black.opacity(0.05)))
                 
                 if pendingCount > 0 {
                     HStack(spacing: 4) {
                         Image(systemName: "clock.badge.questionmark.fill")
                             .foregroundColor(LuminaTheme.Colors.amberGold)
-                        Text("待決定: \(pendingCount)")
+                        Text("待定: \(pendingCount)")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(LuminaTheme.Colors.textPrimary)
                     }
                     .padding(.vertical, 4)
-                    .padding(.horizontal, 8)
+                    .padding(.horizontal, 7)
                     .background(Capsule().fill(LuminaTheme.Colors.amberGold.opacity(0.14)))
                 }
             }
             
             Spacer()
             
+            // 2.2x Synchronized Zoom Button
+            LuminaIconButton(
+                icon: isZoomed ? "minus.magnifyingglass" : "plus.magnifyingglass",
+                title: isZoomed ? "還原標準檢視" : "2.2× 同步局部細節放大",
+                shortcut: "Z",
+                isActive: isZoomed,
+                activeColor: LuminaTheme.Colors.cyanAccent,
+                size: 30,
+                iconSize: 12
+            ) {
+                withAnimation(.springSnappy) {
+                    isZoomed.toggle()
+                    if !isZoomed { zoomOffset = .zero }
+                }
+            }
+            
             // Mode Switcher
-            HStack(spacing: 4) {
+            HStack(spacing: 3) {
                 ForEach(FaceSwapPreviewMode.allCases) { mode in
                     Button(action: {
                         viewModel.faceSwapPreviewMode = mode
                     }) {
-                        Text(mode.rawValue)
-                            .font(.system(size: 11, weight: viewModel.faceSwapPreviewMode == mode ? .bold : .medium))
-                            .foregroundColor(viewModel.faceSwapPreviewMode == mode ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.textSecondary)
-                            .padding(.vertical, 5)
-                            .padding(.horizontal, 10)
-                            .background(
-                                Capsule()
-                                    .fill(viewModel.faceSwapPreviewMode == mode ? Color.white : Color.clear)
-                                    .shadow(color: Color.black.opacity(viewModel.faceSwapPreviewMode == mode ? 0.08 : 0), radius: 3, x: 0, y: 1)
-                            )
+                        HStack(spacing: 3) {
+                            Text(mode.rawValue)
+                                .font(.system(size: 11, weight: viewModel.faceSwapPreviewMode == mode ? .bold : .medium))
+                            Text(mode == .sideBySide ? "1" : "2")
+                                .font(.system(size: 8.5, weight: .heavy, design: .monospaced))
+                                .opacity(0.6)
+                        }
+                        .foregroundColor(viewModel.faceSwapPreviewMode == mode ? LuminaTheme.Colors.electricIndigo : LuminaTheme.Colors.textSecondary)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .background(
+                            Capsule()
+                                .fill(viewModel.faceSwapPreviewMode == mode ? Color.white : Color.clear)
+                                .shadow(color: Color.black.opacity(viewModel.faceSwapPreviewMode == mode ? 0.08 : 0), radius: 3, x: 0, y: 1)
+                        )
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -374,6 +400,8 @@ public struct FaceSwapBatchReviewView: View {
     private func splitCurtainComparison(item: FaceSwapBatchItem, result: FaceSwapResult, size: CGSize) -> some View {
         let originalImg = NSImage(contentsOf: item.targetURL)
         let swappedImg = NSImage(contentsOf: result.previewOutputURL)
+        let currentScale: CGFloat = isZoomed ? 2.2 : 1.0
+        let currentOffset = isZoomed ? CGSize(width: zoomOffset.width + dragOffset.width, height: zoomOffset.height + dragOffset.height) : .zero
         
         return ZStack {
             // Right Side: Swapped Output
@@ -381,6 +409,8 @@ public struct FaceSwapBatchReviewView: View {
                 Image(nsImage: swapped)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .scaleEffect(currentScale)
+                    .offset(currentOffset)
                     .frame(width: size.width, height: size.height)
             }
             
@@ -389,6 +419,8 @@ public struct FaceSwapBatchReviewView: View {
                 Image(nsImage: original)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .scaleEffect(currentScale)
+                    .offset(currentOffset)
                     .frame(width: size.width, height: size.height)
                     .mask(
                         HStack(spacing: 0) {
@@ -429,12 +461,19 @@ public struct FaceSwapBatchReviewView: View {
                     }
             )
             
-            // Top Corner Mode Tags
+            // Top Corner Mode Tags & Zoom Indicator
             VStack {
                 HStack {
                     LuminaBadge("原圖 (保持不變)", color: LuminaTheme.Colors.textSecondary)
                         .padding(.leading, 24)
                         .padding(.top, 16)
+                    
+                    Spacer()
+                    
+                    if isZoomed {
+                        LuminaBadge("2.2× 同步細節放大 • 拖曳平移 • 雙擊還原", color: LuminaTheme.Colors.cyanAccent)
+                            .padding(.top, 16)
+                    }
                     
                     Spacer()
                     
@@ -445,6 +484,31 @@ public struct FaceSwapBatchReviewView: View {
                 Spacer()
             }
         }
+        .clipped()
+        .contentShape(Rectangle())
+        .gesture(
+            TapGesture(count: 2).onEnded {
+                withAnimation(.springSnappy) {
+                    isZoomed.toggle()
+                    if !isZoomed { zoomOffset = .zero }
+                }
+            }
+        )
+        .simultaneousGesture(
+            DragGesture()
+                .onChanged { val in
+                    if isZoomed {
+                        dragOffset = val.translation
+                    }
+                }
+                .onEnded { val in
+                    if isZoomed {
+                        zoomOffset.width += val.translation.width
+                        zoomOffset.height += val.translation.height
+                        dragOffset = .zero
+                    }
+                }
+        )
     }
     
     // MARK: - 3. Central Stage (Side-by-Side)
@@ -452,43 +516,82 @@ public struct FaceSwapBatchReviewView: View {
         let originalImg = NSImage(contentsOf: item.targetURL)
         let swappedImg = NSImage(contentsOf: result.previewOutputURL)
         let halfWidth = (size.width - 24) / 2
+        let currentScale: CGFloat = isZoomed ? 2.2 : 1.0
+        let currentOffset = isZoomed ? CGSize(width: zoomOffset.width + dragOffset.width, height: zoomOffset.height + dragOffset.height) : .zero
         
-        return HStack(spacing: 16) {
-            // Left: Original
-            VStack(spacing: 8) {
-                LuminaBadge("原圖 (保持不變)", color: LuminaTheme.Colors.textSecondary)
-                
-                ZStack {
-                    if let original = originalImg {
-                        Image(nsImage: original)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
+        return ZStack(alignment: .top) {
+            HStack(spacing: 16) {
+                // Left: Original
+                VStack(spacing: 8) {
+                    LuminaBadge("原圖 (保持不變)", color: LuminaTheme.Colors.textSecondary)
+                    
+                    ZStack {
+                        if let original = originalImg {
+                            Image(nsImage: original)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .scaleEffect(currentScale)
+                                .offset(currentOffset)
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: halfWidth)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.85)))
+                
+                // Right: Swapped
+                VStack(spacing: 8) {
+                    LuminaBadge("AI 換臉成果 (100% HEIC)", color: LuminaTheme.Colors.electricIndigo)
+                    
+                    ZStack {
+                        if let swapped = swappedImg {
+                            Image(nsImage: swapped)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .scaleEffect(currentScale)
+                                .offset(currentOffset)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+                }
+                .frame(width: halfWidth)
+                .padding(12)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.85)))
             }
-            .frame(width: halfWidth)
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.85)))
+            .padding(16)
             
-            // Right: Swapped
-            VStack(spacing: 8) {
-                LuminaBadge("AI 換臉成果 (100% HEIC)", color: LuminaTheme.Colors.electricIndigo)
-                
-                ZStack {
-                    if let swapped = swappedImg {
-                        Image(nsImage: swapped)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
+            if isZoomed {
+                LuminaBadge("2.2× 同步細節放大 • 拖曳平移 • 雙擊還原", color: LuminaTheme.Colors.cyanAccent)
+                    .padding(.top, 22)
+            }
+        }
+        .contentShape(Rectangle())
+        .gesture(
+            TapGesture(count: 2).onEnded {
+                withAnimation(.springSnappy) {
+                    isZoomed.toggle()
+                    if !isZoomed { zoomOffset = .zero }
+                }
+            }
+        )
+        .simultaneousGesture(
+            DragGesture()
+                .onChanged { val in
+                    if isZoomed {
+                        dragOffset = val.translation
                     }
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .frame(width: halfWidth)
-            .padding(12)
-            .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.85)))
-        }
-        .padding(16)
+                .onEnded { val in
+                    if isZoomed {
+                        zoomOffset.width += val.translation.width
+                        zoomOffset.height += val.translation.height
+                        dragOffset = .zero
+                    }
+                }
+        )
     }
     
     private func errorStage(item: FaceSwapBatchItem, error: String) -> some View {
@@ -543,11 +646,12 @@ public struct FaceSwapBatchReviewView: View {
                 HStack(spacing: 5) {
                     Image(systemName: "chevron.left")
                     Text("上一張")
+                    LuminaKeycap("←")
                 }
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(currentIndex > 0 ? LuminaTheme.Colors.textPrimary : LuminaTheme.Colors.textTertiary)
                 .padding(.vertical, 8)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.white)
@@ -585,17 +689,22 @@ public struct FaceSwapBatchReviewView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "arrow.uturn.backward")
                         .font(.system(size: 13, weight: .bold))
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("保持原圖 (略過)")
                             .font(.system(size: 13, weight: .bold))
-                        Text("快捷鍵: DEL / X / 空白鍵")
-                            .font(.system(size: 9))
-                            .opacity(0.7)
+                        HStack(spacing: 3) {
+                            Text("快捷鍵:")
+                                .font(.system(size: 9))
+                                .opacity(0.65)
+                            LuminaKeycap("⌫")
+                            LuminaKeycap("X")
+                            LuminaKeycap("␣")
+                        }
                     }
                 }
                 .foregroundColor(LuminaTheme.Colors.textPrimary)
-                .padding(.vertical, 9)
-                .padding(.horizontal, 18)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .fill(currentItem?.decision == .keptOriginal ? Color.black.opacity(0.08) : Color.white)
@@ -615,17 +724,21 @@ public struct FaceSwapBatchReviewView: View {
                 HStack(spacing: 8) {
                     Image(systemName: currentItem?.decision == .saved ? "checkmark.circle.fill" : "sparkles.rectangle.stack.fill")
                         .font(.system(size: 14, weight: .bold))
-                    VStack(alignment: .leading, spacing: 1) {
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("標記儲存取代原檔")
                             .font(.system(size: 13, weight: .bold))
-                        Text("完成審查時套用取代 • 快捷鍵: Enter / S")
-                            .font(.system(size: 9))
-                            .opacity(0.85)
+                        HStack(spacing: 3) {
+                            Text("完成審查套用 •")
+                                .font(.system(size: 9))
+                                .opacity(0.85)
+                            LuminaKeycap("↵")
+                            LuminaKeycap("S")
+                        }
                     }
                 }
                 .foregroundColor(.white)
-                .padding(.vertical, 9)
-                .padding(.horizontal, 24)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 22)
                 .background(
                     Capsule()
                         .fill(currentItem?.decision == .saved ? LuminaTheme.Colors.mintEmerald : LuminaTheme.Colors.electricIndigo)
@@ -644,11 +757,12 @@ public struct FaceSwapBatchReviewView: View {
                 HStack(spacing: 5) {
                     Text("下一張")
                     Image(systemName: "chevron.right")
+                    LuminaKeycap("→")
                 }
                 .font(.system(size: 12, weight: .bold))
                 .foregroundColor(currentIndex < totalCount - 1 ? LuminaTheme.Colors.textPrimary : LuminaTheme.Colors.textTertiary)
                 .padding(.vertical, 8)
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 12)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
                         .fill(Color.white)
@@ -659,7 +773,7 @@ public struct FaceSwapBatchReviewView: View {
             .disabled(currentIndex >= totalCount - 1)
         }
         .padding(.horizontal, 24)
-        .padding(.vertical, 14)
+        .padding(.vertical, 12)
         .background(
             Color.white
                 .background(VisualEffectView(material: .headerView, blendingMode: .withinWindow))
@@ -684,9 +798,30 @@ public struct FaceSwapBatchReviewView: View {
             case 124: // Right Arrow -> Next
                 viewModel.nextBatchReviewItem()
                 return nil
-            case 53, 15: // ESC or R -> Return to browsing photos (preserving staging)
+            case 6: // Z -> Zoom Toggle
+                withAnimation(.springSnappy) {
+                    isZoomed.toggle()
+                    if !isZoomed { zoomOffset = .zero }
+                }
+                return nil
+            case 18: // 1 -> Side-by-Side
+                viewModel.faceSwapPreviewMode = .sideBySide
+                return nil
+            case 19: // 2 -> Split Curtain
+                viewModel.faceSwapPreviewMode = .splitCurtain
+                return nil
+            case 17: // T -> Toggle Mode
+                viewModel.faceSwapPreviewMode = (viewModel.faceSwapPreviewMode == .sideBySide ? .splitCurtain : .sideBySide)
+                return nil
+            case 53: // ESC -> Return to browsing photos (preserving staging)
                 viewModel.closeFaceSwapBatchReview()
                 return nil
+            case 15: // R -> Cmd+R returns to browsing
+                if event.modifierFlags.contains(.command) {
+                    viewModel.closeFaceSwapBatchReview()
+                    return nil
+                }
+                return event
             default:
                 return event
             }

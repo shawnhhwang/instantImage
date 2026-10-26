@@ -13,6 +13,15 @@ public struct ImageGridView: View {
         [GridItem(.adaptive(minimum: CGFloat(viewModel.thumbnailScale), maximum: CGFloat(viewModel.thumbnailScale * 1.5)), spacing: 14)]
     }
     
+    private func updateColumnCount(width: CGFloat) {
+        let availableWidth = max(100, width - 32)
+        let itemWidth = CGFloat(viewModel.thumbnailScale) + 14
+        let cols = max(1, Int(availableWidth / itemWidth))
+        if viewModel.gridColumnCount != cols {
+            viewModel.gridColumnCount = cols
+        }
+    }
+    
     public var body: some View {
         VStack(spacing: 0) {
             // MARK: - Filter, Search & Sort Control Deck
@@ -38,27 +47,38 @@ public struct ImageGridView: View {
                     .allowsHitTesting(false)
                 
                 ScrollViewReader { proxy in
-                    ScrollView {
-                        if viewModel.displayedImages.isEmpty {
-                            emptyStateView
-                        } else {
-                            LazyVGrid(columns: gridColumns, spacing: 16) {
-                                ForEach(0..<viewModel.displayedImages.count, id: \.self) { index in
-                                    photoCard(for: index)
-                                        .id(index)
+                    GeometryReader { geo in
+                        ScrollView {
+                            if viewModel.displayedImages.isEmpty {
+                                emptyStateView
+                            } else {
+                                LazyVGrid(columns: gridColumns, spacing: 16) {
+                                    ForEach(0..<viewModel.displayedImages.count, id: \.self) { index in
+                                        photoCard(for: index)
+                                            .id(index)
+                                    }
                                 }
+                                .padding(16)
                             }
-                            .padding(16)
                         }
-                    }
-                    .background(LuminaTheme.Colors.bgCanvas)
-                    .simultaneousGesture(TapGesture().onEnded {
-                        NSApp.keyWindow?.makeFirstResponder(nil)
-                    })
-                    .onChange(of: viewModel.selectedImageIndex) { _, newIndex in
-                        if let idx = newIndex {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                proxy.scrollTo(idx, anchor: .center)
+                        .background(LuminaTheme.Colors.bgCanvas)
+                        .simultaneousGesture(TapGesture().onEnded {
+                            NSApp.keyWindow?.makeFirstResponder(nil)
+                        })
+                        .onAppear {
+                            updateColumnCount(width: geo.size.width)
+                        }
+                        .onChange(of: geo.size.width) { _, newWidth in
+                            updateColumnCount(width: newWidth)
+                        }
+                        .onChange(of: viewModel.thumbnailScale) { _, _ in
+                            updateColumnCount(width: geo.size.width)
+                        }
+                        .onChange(of: viewModel.selectedImageIndex) { _, newIndex in
+                            if let idx = newIndex {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    proxy.scrollTo(idx, anchor: .center)
+                                }
                             }
                         }
                     }
@@ -255,6 +275,32 @@ public struct ImageGridView: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     .help(viewModel.sortAscending ? "目前為遞增排序 (點擊切換為遞減)" : "目前為遞減排序 (點擊切換為遞增)")
+                    
+                    // Reset Filters button if any filter is active
+                    let hasActiveFilters = viewModel.filterRating > 0 || viewModel.filterTaggedOnly || viewModel.filterOnlyRaw || viewModel.filterOnlyEdited || !viewModel.searchQuery.isEmpty
+                    if hasActiveFilters {
+                        Button(action: {
+                            viewModel.filterRating = 0
+                            viewModel.filterTaggedOnly = false
+                            viewModel.filterOnlyRaw = false
+                            viewModel.filterOnlyEdited = false
+                            viewModel.searchQuery = ""
+                            viewModel.updateDisplayedImages()
+                        }) {
+                            HStack(spacing: 3) {
+                                Image(systemName: "xmark.circle.fill")
+                                    .font(.system(size: 9))
+                                Text("重置篩選")
+                                    .font(.system(size: 10, weight: .bold))
+                            }
+                            .foregroundColor(LuminaTheme.Colors.neonCoral)
+                            .padding(.vertical, 3)
+                            .padding(.horizontal, 7)
+                            .background(Capsule().fill(LuminaTheme.Colors.neonCoral.opacity(0.12)))
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .help("清除所有篩選與搜尋條件")
+                    }
                 }
                 
                 Spacer()
@@ -779,42 +825,97 @@ public struct ImageGridView: View {
                     .fill(Color.black.opacity(0.04))
                     .frame(width: 88, height: 88)
                 
-                Image(systemName: "photo.badge.magnifyingglass")
+                Image(systemName: viewModel.selectedFolder == nil ? "folder.badge.plus" : "photo.badge.magnifyingglass")
                     .font(.system(size: 38))
-                    .foregroundColor(LuminaTheme.Colors.cyanAccent.opacity(0.8))
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent.opacity(0.85))
                     .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 10)
             }
             
             VStack(spacing: 6) {
-                Text(viewModel.selectedFolder == nil ? "尚未開啟影像資料夾" : "查無符合篩選條件的影像")
+                Text(viewModel.selectedFolder == nil ? "尚未開啟影像資料夾" : (viewModel.images.isEmpty ? "此資料夾內無相片" : "查無符合篩選條件的影像"))
                     .font(.system(size: 15, weight: .bold))
                     .foregroundColor(LuminaTheme.Colors.textPrimary)
                 
-                Text(viewModel.selectedFolder == nil ? "請於左側欄點擊「開啟影像資料夾」開始極速選片" : "請調整上方星級、標籤或搜尋關鍵字")
+                Text(viewModel.selectedFolder == nil ? "請點擊下方按鈕或直接將相片資料夾拖放至視窗中" : (viewModel.images.isEmpty ? "請將相片放入此資料夾，支援 RAW / JPEG / HEIC" : "請調整上方星級、標籤或搜尋關鍵字"))
                     .font(.system(size: 12))
                     .foregroundColor(LuminaTheme.Colors.textSecondary)
             }
             
             if viewModel.selectedFolder == nil {
-                Button(action: {
-                    Task {
-                        if let selected = await SecurityScopedBookmarkManager.shared.selectFolder() {
-                            viewModel.selectFolder(selected)
+                VStack(spacing: 12) {
+                    Button(action: {
+                        Task {
+                            if let selected = await SecurityScopedBookmarkManager.shared.selectFolder() {
+                                viewModel.selectFolder(selected)
+                            }
                         }
+                    }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "folder.badge.plus")
+                            Text("選取相片資料夾 (⌘O)")
+                        }
+                        .font(.system(size: 12.5, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.vertical, 9)
+                        .padding(.horizontal, 20)
+                        .background(
+                            Capsule().fill(LuminaTheme.Colors.cyanAccent)
+                        )
+                        .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    if !viewModel.recentFolders.isEmpty {
+                        VStack(spacing: 6) {
+                            Text("或從近期工作階段快速開啟:")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(LuminaTheme.Colors.textTertiary)
+                            
+                            HStack(spacing: 6) {
+                                ForEach(viewModel.recentFolders.prefix(3), id: \.self) { recent in
+                                    Button(action: {
+                                        viewModel.selectFolder(recent)
+                                    }) {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "folder")
+                                                .font(.system(size: 9))
+                                            Text(recent.lastPathComponent)
+                                                .font(.system(size: 10.5, weight: .medium))
+                                        }
+                                        .foregroundColor(LuminaTheme.Colors.textSecondary)
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal, 8)
+                                        .background(Capsule().fill(Color.black.opacity(0.04)))
+                                    }
+                                    .buttonStyle(PlainButtonStyle())
+                                }
+                            }
+                        }
+                        .padding(.top, 4)
+                    }
+                }
+                .padding(.top, 4)
+            } else if !viewModel.images.isEmpty && viewModel.displayedImages.isEmpty {
+                Button(action: {
+                    viewModel.filterRating = 0
+                    viewModel.filterTaggedOnly = false
+                    viewModel.filterOnlyRaw = false
+                    viewModel.filterOnlyEdited = false
+                    viewModel.searchQuery = ""
+                    viewModel.updateDisplayedImages()
                 }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "folder.badge.plus")
-                        Text("選取資料夾")
+                    HStack(spacing: 5) {
+                        Image(systemName: "arrow.counterclockwise")
+                        Text("重置並清除所有篩選條件")
                     }
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.white)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                    .font(.system(size: 11.5, weight: .bold))
+                    .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                    .padding(.vertical, 7)
+                    .padding(.horizontal, 14)
                     .background(
-                        Capsule().fill(LuminaTheme.Colors.cyanAccent)
+                        Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.12))
+                            .overlay(Capsule().stroke(LuminaTheme.Colors.cyanAccent.opacity(0.35), lineWidth: 1))
                     )
-                    .luminaGlow(color: LuminaTheme.Colors.cyanAccent, radius: 8)
                 }
                 .buttonStyle(PlainButtonStyle())
                 .padding(.top, 4)

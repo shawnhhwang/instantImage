@@ -118,6 +118,11 @@ public final class AppViewModel: ObservableObject {
     @Published public var faceSwapResultByTargetURL: [String: FaceSwapResult] = [:]
     @Published public var isFaceSwapDetailSplitActive: Bool = false
     
+    // Recent Folders & Grid Metrics
+    @Published public var recentFolders: [URL] = []
+    @Published public var gridColumnCount: Int = 4
+    private let recentFoldersKey = "com.project.lumina.recentFolders"
+    
     private let fileSystemRepo = FileSystemRepository()
     private let directoryMonitor = DirectoryMonitor()
     
@@ -131,6 +136,7 @@ public final class AppViewModel: ObservableObject {
         setupDirectoryMonitor()
         loadInitialBookmarks()
         loadFavorites()
+        loadRecentFolders()
         loadCullingDestination()
         loadFaceSwapSettings()
         setupKeyboardNotificationObserver()
@@ -174,6 +180,7 @@ public final class AppViewModel: ObservableObject {
     public func selectFolder(_ url: URL) {
         selectedFolder = url
         SecurityScopedBookmarkManager.shared.saveBookmark(for: url)
+        addRecentFolder(url)
         
         // Start watching the directory
         directoryMonitor.startMonitoring(url: url)
@@ -434,39 +441,72 @@ public final class AppViewModel: ObservableObject {
         return displayedImages[index]
     }
     
-    public func selectNextImage() {
+    public func selectNextImage(extendSelection: Bool = false) {
         guard !displayedImages.isEmpty else { return }
-        if let current = selectedImageIndex {
-            if current < displayedImages.count - 1 {
-                selectedImageIndex = current + 1
-            }
-        } else if let last = selectedIndexes.sorted().last, last < displayedImages.count - 1 {
-            selectedImageIndex = last + 1
+        let current = selectedImageIndex ?? (selectedIndexes.sorted().last ?? 0)
+        let nextIdx = min(displayedImages.count - 1, current + 1)
+        selectedImageIndex = nextIdx
+        if extendSelection {
+            let from = selectedIndexes.sorted().first ?? current
+            selectRange(from: from, to: nextIdx)
         } else {
-            selectedImageIndex = 0
-        }
-        if let idx = selectedImageIndex {
-            selectedIndexes = [idx]
+            selectedIndexes = [nextIdx]
         }
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
     }
     
-    public func selectPreviousImage() {
+    public func selectPreviousImage(extendSelection: Bool = false) {
         guard !displayedImages.isEmpty else { return }
-        if let current = selectedImageIndex {
-            if current > 0 {
-                selectedImageIndex = current - 1
-            }
-        } else if let first = selectedIndexes.sorted().first, first > 0 {
-            selectedImageIndex = first - 1
+        let current = selectedImageIndex ?? (selectedIndexes.sorted().first ?? 0)
+        let nextIdx = max(0, current - 1)
+        selectedImageIndex = nextIdx
+        if extendSelection {
+            let from = selectedIndexes.sorted().first ?? current
+            selectRange(from: from, to: nextIdx)
         } else {
-            selectedImageIndex = 0
-        }
-        if let idx = selectedImageIndex {
-            selectedIndexes = [idx]
+            selectedIndexes = [nextIdx]
         }
         if isDetailActive { calculateHistogramForSelected() }
+        prefetchAdjacentImages()
+    }
+    
+    public func selectImageAbove(extendSelection: Bool = false) {
+        guard !displayedImages.isEmpty else { return }
+        if isDetailActive {
+            selectFirstImage()
+            return
+        }
+        let cols = max(1, gridColumnCount)
+        let current = selectedImageIndex ?? (selectedIndexes.sorted().first ?? 0)
+        let nextIdx = max(0, current - cols)
+        selectedImageIndex = nextIdx
+        if extendSelection {
+            let from = selectedIndexes.sorted().first ?? current
+            selectRange(from: from, to: nextIdx)
+        } else {
+            selectedIndexes = [nextIdx]
+        }
+        prefetchAdjacentImages()
+    }
+    
+    public func selectImageBelow(extendSelection: Bool = false) {
+        guard !displayedImages.isEmpty else { return }
+        if isDetailActive {
+            selectLastImage()
+            return
+        }
+        let cols = max(1, gridColumnCount)
+        let lastIdx = displayedImages.count - 1
+        let current = selectedImageIndex ?? (selectedIndexes.sorted().first ?? 0)
+        let nextIdx = min(lastIdx, current + cols)
+        selectedImageIndex = nextIdx
+        if extendSelection {
+            let from = selectedIndexes.sorted().first ?? current
+            selectRange(from: from, to: nextIdx)
+        } else {
+            selectedIndexes = [nextIdx]
+        }
         prefetchAdjacentImages()
     }
     
@@ -485,6 +525,15 @@ public final class AppViewModel: ObservableObject {
         selectedIndexes = [lastIdx]
         if isDetailActive { calculateHistogramForSelected() }
         prefetchAdjacentImages()
+    }
+    
+    public func resetLightCorrectionForSelected() {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        lightCorrections[key] = .neutral
+        isAutoLightEnabled[key] = false
+        showToast("已重置所有調光參數至原始狀態")
+        calculateHistogramForSelected()
     }
     
     public func toggleZoom() {
@@ -684,15 +733,6 @@ public final class AppViewModel: ObservableObject {
         let key = image.url.path
         lightCorrections[key] = params
         isAutoLightEnabled[key] = !params.isNeutral
-    }
-    
-    /// Reset light adjustments to standard original neutral
-    public func resetLightCorrectionForSelected() {
-        guard let image = selectedImage else { return }
-        let key = image.url.path
-        lightCorrections[key] = .neutral
-        isAutoLightEnabled[key] = false
-        showToast("已重設光線調整")
     }
     
     /// Look-ahead prefetching of adjacent images for seamless ACDSee-style culling
@@ -985,16 +1025,49 @@ public final class AppViewModel: ObservableObject {
             }
         }
         
+        // Modal 5: Compare Arena Navigation
+        if isCompareActive {
+            let total = min(4, selectedIndexes.count)
+            switch event.keyCode {
+            case KeyCode.leftArrow:
+                if focusedCompareIndex > 0 {
+                    focusedCompareIndex -= 1
+                }
+                return
+            case KeyCode.rightArrow:
+                if focusedCompareIndex < total - 1 {
+                    focusedCompareIndex += 1
+                }
+                return
+            case KeyCode.escape:
+                isCompareActive = false
+                return
+            default:
+                break
+            }
+        }
+        
+        let isShift = event.modifierFlags.contains(.shift)
+        let isCmd = event.modifierFlags.contains(.command)
+        
         // Standard Grid / Detail / Compare Keyboard Navigation
         switch event.keyCode {
         case KeyCode.leftArrow:
-            selectPreviousImage()
+            selectPreviousImage(extendSelection: isShift && !isDetailActive)
         case KeyCode.rightArrow:
-            selectNextImage()
+            selectNextImage(extendSelection: isShift && !isDetailActive)
         case KeyCode.upArrow:
-            selectFirstImage()
+            if isCmd {
+                selectFirstImage()
+            } else {
+                selectImageAbove(extendSelection: isShift && !isDetailActive)
+            }
         case KeyCode.downArrow:
-            selectLastImage()
+            if isCmd {
+                selectLastImage()
+            } else {
+                selectImageBelow(extendSelection: isShift && !isDetailActive)
+            }
         case KeyCode.space:
             isDetailActive.toggle()
         case KeyCode.escape:
@@ -1133,6 +1206,43 @@ public final class AppViewModel: ObservableObject {
             }
         }
         UserDefaults.standard.set(paths, forKey: favoritesKey)
+    }
+    
+    // MARK: - Recent Folders System
+    public func addRecentFolder(_ url: URL) {
+        var recents = self.recentFolders.filter { $0.path != url.path }
+        recents.insert(url, at: 0)
+        if recents.count > 8 {
+            recents = Array(recents.prefix(8))
+        }
+        self.recentFolders = recents
+        saveRecentFolders()
+    }
+    
+    private func saveRecentFolders() {
+        let paths = recentFolders.map { $0.path }
+        UserDefaults.standard.set(paths, forKey: recentFoldersKey)
+    }
+    
+    private func loadRecentFolders() {
+        let paths = UserDefaults.standard.stringArray(forKey: recentFoldersKey) ?? []
+        let bookmarksMap = UserDefaults.standard.dictionary(forKey: "com.project.lumina.bookmarks") as? [String: Data] ?? [:]
+        var loaded: [URL] = []
+        for path in paths {
+            if let data = bookmarksMap[path] {
+                do {
+                    var isStale = false
+                    let url = try URL(resolvingBookmarkData: data, options: .withSecurityScope, relativeTo: nil, bookmarkDataIsStale: &isStale)
+                    _ = url.startAccessingSecurityScopedResource()
+                    loaded.append(url)
+                } catch {
+                    loaded.append(URL(fileURLWithPath: path))
+                }
+            } else {
+                loaded.append(URL(fileURLWithPath: path))
+            }
+        }
+        self.recentFolders = loaded
     }
     
     // Toast System
@@ -1706,42 +1816,100 @@ public final class AppViewModel: ObservableObject {
     }
     
     public func applyBatchDecisionsAndFinish() {
+        let fileManager = FileManager.default
         let itemsToSave = faceSwapBatchItems.filter { $0.decision == .saved && $0.result != nil }
+        let itemsToKeep = faceSwapBatchItems.filter { $0.decision == .keptOriginal || $0.decision == .pending }
         let saveDest = faceSwapBatchSaveDestination
         var savedCount = 0
         var failCount = 0
         
+        // 1. Process items marked as .saved -> replace original file with swapped photo
         for item in itemsToSave {
             guard let result = item.result else { continue }
             do {
-                _ = try performSaveFaceSwap(result: result, destination: saveDest)
+                let savedURL = try performSaveFaceSwap(result: result, destination: saveDest)
                 savedCount += 1
+                
+                // Ensure preview / temp swapped file is deleted if different from savedURL
+                if result.previewOutputURL.path != savedURL.path && fileManager.fileExists(atPath: result.previewOutputURL.path) {
+                    try? fileManager.removeItem(at: result.previewOutputURL)
+                }
             } catch {
                 LoggerManager.shared.log("Failed to save FaceSwap for \(item.filename): \(error.localizedDescription)", level: .error)
                 failCount += 1
             }
         }
         
-        let keptCount = faceSwapBatchItems.filter { $0.decision == .keptOriginal || $0.decision == .pending }.count
+        // 2. Process items marked as .keptOriginal (or left .pending) -> keep original, discard swapped preview
+        for item in itemsToKeep {
+            if let result = item.result {
+                let swappedURL = result.previewOutputURL
+                if swappedURL.path != item.targetURL.path && fileManager.fileExists(atPath: swappedURL.path) {
+                    // If preview was a file in the folder (e.g. a paired _swap file), safely recycle it
+                    if swappedURL.deletingLastPathComponent().path == item.targetURL.deletingLastPathComponent().path {
+                        NSWorkspace.shared.recycle([swappedURL])
+                    } else {
+                        try? fileManager.removeItem(at: swappedURL)
+                    }
+                }
+            }
+        }
         
+        let keptCount = itemsToKeep.count
+        
+        // 3. Remove all staging folders (faceswap_temp) and manifest files
         if let stagingDir = self.currentFaceSwapStagingDir {
-            cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+            try? fileManager.removeItem(at: stagingDir)
             self.currentFaceSwapStagingDir = nil
         }
         
-        let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview")
-        try? FileManager.default.removeItem(at: tempPreviewDir)
-        let tempFallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp")
-        try? FileManager.default.removeItem(at: tempFallback)
+        // Remove faceswap_temp & faceswap_manifest.json in selectedFolder
+        if let folderURL = self.selectedFolder {
+            let tempDir = folderURL.appendingPathComponent("faceswap_temp", isDirectory: true)
+            try? fileManager.removeItem(at: tempDir)
+            let manifestFile = folderURL.appendingPathComponent("faceswap_manifest.json")
+            try? fileManager.removeItem(at: manifestFile)
+            let outputManifest = folderURL.appendingPathComponent("output").appendingPathComponent("faceswap_manifest.json")
+            try? fileManager.removeItem(at: outputManifest)
+        }
         
+        // Clean up faceswap_temp & faceswap_manifest.json in any unique target directories
+        var checkedDirs = Set<String>()
+        for item in faceSwapBatchItems {
+            let dir = item.targetURL.deletingLastPathComponent()
+            if !checkedDirs.contains(dir.path) {
+                checkedDirs.insert(dir.path)
+                let tempDir = dir.appendingPathComponent("faceswap_temp", isDirectory: true)
+                try? fileManager.removeItem(at: tempDir)
+                let manifest = dir.appendingPathComponent("faceswap_manifest.json")
+                try? fileManager.removeItem(at: manifest)
+            }
+        }
+        
+        // Clean temporary preview directories in NSTemporaryDirectory
+        let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview")
+        try? fileManager.removeItem(at: tempPreviewDir)
+        let tempFallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp")
+        try? fileManager.removeItem(at: tempFallback)
+        
+        // 4. Reset batch review and detected items state so UI reflects clean state
         self.isFaceSwapBatchReviewPresented = false
         self.faceSwapBatchItems = []
+        self.detectedFaceSwapItems = []
+        self.detectedFaceSwapCount = 0
+        self.hasDetectedFaceSwaps = false
+        self.showDetectedFaceSwapBanner = false
+        self.faceSwapResultByTargetURL = [:]
+        
+        // 5. Refresh folder contents so the grid displays only the final confirmed files
         self.refreshFolderContents()
         
         if failCount > 0 {
-            showToast("完成審查: 已取代 \(savedCount) 張，失敗 \(failCount) 張 (原檔保留 \(keptCount) 張)")
+            showToast("完成審查: 已取代 \(savedCount) 張，失敗 \(failCount) 張 (原檔保留 \(keptCount) 張，已清理所有暫存)")
+        } else if savedCount == 0 {
+            showToast("🎉 批次審查完成！已保留全部 \(keptCount) 張原檔，已清理所有換臉暫存")
         } else {
-            showToast("🎉 批次審查完成！已取代 \(savedCount) 張相片，保留 \(keptCount) 張原檔")
+            showToast("🎉 批次審查完成！已取代 \(savedCount) 張相片，保留 \(keptCount) 張原檔，已清理所有暫存")
         }
     }
     
@@ -1795,24 +1963,48 @@ public final class AppViewModel: ObservableObject {
     }
     
     public func discardAllFaceSwapStaging() {
+        let fm = FileManager.default
         if let stagingDir = self.currentFaceSwapStagingDir {
-            cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
+            try? fm.removeItem(at: stagingDir)
             self.currentFaceSwapStagingDir = nil
         }
         
+        if let folderURL = self.selectedFolder {
+            let tempDir = folderURL.appendingPathComponent("faceswap_temp", isDirectory: true)
+            try? fm.removeItem(at: tempDir)
+            let manifestFile = folderURL.appendingPathComponent("faceswap_manifest.json")
+            try? fm.removeItem(at: manifestFile)
+            let outputManifest = folderURL.appendingPathComponent("output").appendingPathComponent("faceswap_manifest.json")
+            try? fm.removeItem(at: outputManifest)
+        }
+        
+        for item in faceSwapBatchItems {
+            if let result = item.result {
+                let swappedURL = result.previewOutputURL
+                if swappedURL.path != item.targetURL.path && fm.fileExists(atPath: swappedURL.path) {
+                    if swappedURL.deletingLastPathComponent().path == item.targetURL.deletingLastPathComponent().path {
+                        NSWorkspace.shared.recycle([swappedURL])
+                    } else {
+                        try? fm.removeItem(at: swappedURL)
+                    }
+                }
+            }
+        }
+        
         let tempPreviewDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/FaceSwapBatchPreview")
-        try? FileManager.default.removeItem(at: tempPreviewDir)
+        try? fm.removeItem(at: tempPreviewDir)
         let tempFallback = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("ProjectLumina/faceswap_temp")
-        try? FileManager.default.removeItem(at: tempFallback)
+        try? fm.removeItem(at: tempFallback)
         
         self.isFaceSwapBatchReviewPresented = false
         self.faceSwapBatchItems = []
         self.detectedFaceSwapItems = []
         self.detectedFaceSwapCount = 0
         self.hasDetectedFaceSwaps = false
+        self.showDetectedFaceSwapBanner = false
         self.faceSwapResultByTargetURL = [:]
         self.refreshFolderContents()
-        self.showToast("已清空並放棄換臉暫存檔")
+        self.showToast("已清空並放棄換臉暫存檔 (保留原圖)")
     }
     
     // MARK: - Detect Completed FaceSwaps in Folder
@@ -2005,6 +2197,11 @@ public final class AppViewModel: ObservableObject {
                 }
             }
             
+            // Clean up source temp file if distinct from finalDestURL
+            if sourceTempURL.path != finalDestURL.path && fileManager.fileExists(atPath: sourceTempURL.path) {
+                try? fileManager.removeItem(at: sourceTempURL)
+            }
+            
             return finalDestURL
             
         case .swapOutput:
@@ -2022,6 +2219,9 @@ public final class AppViewModel: ObservableObject {
                 counter += 1
             }
             try fileManager.copyItem(at: sourceTempURL, to: finalDestURL)
+            if sourceTempURL.path != finalDestURL.path && fileManager.fileExists(atPath: sourceTempURL.path) {
+                try? fileManager.removeItem(at: sourceTempURL)
+            }
             return finalDestURL
             
         case .saveAs:
@@ -2034,6 +2234,9 @@ public final class AppViewModel: ObservableObject {
                     try? fileManager.removeItem(at: selectedURL)
                 }
                 try fileManager.copyItem(at: sourceTempURL, to: selectedURL)
+                if sourceTempURL.path != selectedURL.path && fileManager.fileExists(atPath: sourceTempURL.path) {
+                    try? fileManager.removeItem(at: sourceTempURL)
+                }
                 return selectedURL
             } else {
                 throw NSError(domain: "FaceSwap", code: 3, userInfo: [NSLocalizedDescriptionKey: "已取消另存新檔"])
@@ -2050,6 +2253,14 @@ public final class AppViewModel: ObservableObject {
                 cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
                 currentFaceSwapStagingDir = nil
             }
+            
+            // Remove target from detected items
+            let targetPath = result.targetURL.standardizedFileURL.path
+            self.faceSwapResultByTargetURL.removeValue(forKey: targetPath)
+            self.detectedFaceSwapItems.removeAll { $0.targetURL.standardizedFileURL.path == targetPath }
+            self.detectedFaceSwapCount = self.detectedFaceSwapItems.count
+            self.hasDetectedFaceSwaps = !self.detectedFaceSwapItems.isEmpty
+            
             self.currentFaceSwapResult = nil
             self.isFaceSwapPreviewPresented = false
             self.showToast("✨ 已刪除舊檔並以換臉成果取代: \(savedURL.lastPathComponent)")
@@ -2062,6 +2273,11 @@ public final class AppViewModel: ObservableObject {
     public func discardFaceSwapResult() {
         if let result = currentFaceSwapResult {
             try? FileManager.default.removeItem(at: result.previewOutputURL)
+            let targetPath = result.targetURL.standardizedFileURL.path
+            self.faceSwapResultByTargetURL.removeValue(forKey: targetPath)
+            self.detectedFaceSwapItems.removeAll { $0.targetURL.standardizedFileURL.path == targetPath }
+            self.detectedFaceSwapCount = self.detectedFaceSwapItems.count
+            self.hasDetectedFaceSwaps = !self.detectedFaceSwapItems.isEmpty
         }
         if let stagingDir = currentFaceSwapStagingDir {
             cleanupFaceSwapStagingFolder(stagingDir: stagingDir)
@@ -2095,7 +2311,7 @@ public final class AppViewModel: ObservableObject {
         guard let dir = stagingDir else { return }
         let fm = FileManager.default
         if let contents = try? fm.contentsOfDirectory(atPath: dir.path) {
-            let nonHidden = contents.filter { !$0.hasPrefix(".") }
+            let nonHidden = contents.filter { !$0.hasPrefix(".") && !$0.hasSuffix(".json") }
             if nonHidden.isEmpty {
                 try? fm.removeItem(at: dir)
             }

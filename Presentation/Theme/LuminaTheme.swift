@@ -95,6 +95,21 @@ public enum LuminaTheme {
         public static let xl: CGFloat = 20
         public static let pill: CGFloat = 999
     }
+    
+    // MARK: - Motion & Springs (Apple Design Award Motion Standards)
+    public enum Animation {
+        public static let springSnappy = SwiftUI.Animation.spring(response: 0.20, dampingFraction: 0.76)
+        public static let springSmooth = SwiftUI.Animation.spring(response: 0.28, dampingFraction: 0.82)
+        public static let springBouncy = SwiftUI.Animation.spring(response: 0.34, dampingFraction: 0.68)
+        public static let easeOutFast = SwiftUI.Animation.easeOut(duration: 0.16)
+    }
+}
+
+public extension SwiftUI.Animation {
+    static var springSnappy: SwiftUI.Animation { LuminaTheme.Animation.springSnappy }
+    static var springSmooth: SwiftUI.Animation { LuminaTheme.Animation.springSmooth }
+    static var springBouncy: SwiftUI.Animation { LuminaTheme.Animation.springBouncy }
+    static var easeOutFast: SwiftUI.Animation { LuminaTheme.Animation.easeOutFast }
 }
 
 // MARK: - View Modifiers for Bright Tech Glassmorphism
@@ -145,5 +160,33 @@ public extension View {
     
     func luminaGlow(color: Color = LuminaTheme.Colors.cyanAccent, radius: CGFloat = 8, isActive: Bool = true) -> some View {
         self.modifier(LuminaGlowModifier(color: color, radius: radius, isActive: isActive))
+    }
+}
+
+// MARK: - Native Mac Keyboard Keycap (Apple Pro App Standard)
+public struct LuminaKeycap: View {
+    let key: String
+    var isAccent: Bool = false
+    
+    public init(_ key: String, isAccent: Bool = false) {
+        self.key = key
+        self.isAccent = isAccent
+    }
+    
+    public var body: some View {
+        Text(key)
+            .font(.system(size: 9.5, weight: .bold, design: .rounded))
+            .foregroundColor(isAccent ? LuminaTheme.Colors.cyanAccent : LuminaTheme.Colors.textSecondary)
+            .padding(.vertical, 2)
+            .padding(.horizontal, 5)
+            .background(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.12), radius: 1, x: 0, y: 1)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .stroke(isAccent ? LuminaTheme.Colors.cyanAccent.opacity(0.4) : Color.black.opacity(0.12), lineWidth: 0.75)
+            )
     }
 }

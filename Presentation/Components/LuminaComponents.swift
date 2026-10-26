@@ -351,7 +351,12 @@ public struct LuminaPrecisionSlider: View {
                         )
                 }
                 .buttonStyle(PlainButtonStyle())
-                .help("點擊重設為預設值")
+                .help("點擊或雙擊重設為預設值")
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                value = defaultValue
+                onReset?()
             }
             
             // Custom Track Slider
@@ -396,6 +401,11 @@ public struct LuminaPrecisionSlider: View {
                 Slider(value: $value, in: range)
                     .controlSize(.mini)
                     .opacity(0.85)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture(count: 2) {
+                value = defaultValue
+                onReset?()
             }
         }
         .padding(.vertical, 2)
