@@ -170,90 +170,44 @@ public final class PortraitRetouchService: @unchecked Sendable {
     
     // MARK: - 2. Spot & Blemish Healing
     
-    /// Seamlessly inpaint and heal user-marked spot blemishes using surrounding skin ring texture
+    /// Pure GPU-accelerated seamless texture-cloning and blemish inpainting
     public func healSpots(in image: CIImage, spots: [SpotRemovalItem]) -> CIImage {
-        guard let cgImage = ciContext.createCGImage(image, from: image.extent) else {
-            return image
-        }
+        guard !spots.isEmpty else { return image }
         
-        let width = cgImage.width
-        let height = cgImage.height
-        let bytesPerRow = width * 4
-        var pixelData = [UInt8](repeating: 0, count: height * bytesPerRow)
-        let bitmapInfo = CGBitmapInfo.byteOrder32Big.rawValue | CGImageAlphaInfo.premultipliedLast.rawValue
+        let extent = image.extent
+        guard extent.width > 0 && extent.height > 0 else { return image }
         
-        guard let ctx = CGContext(
-            data: &pixelData,
-            width: width,
-            height: height,
-            bitsPerComponent: 8,
-            bytesPerRow: bytesPerRow,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: bitmapInfo
-        ) else { return image }
-        
-        ctx.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+        var currentImage = image
+        let minDim = min(extent.width, extent.height)
         
         for spot in spots {
-            let cx = Int(spot.normalizedX * CGFloat(width))
-            // Vision/CoreImage coordinates (Y=0 at bottom) vs bitmap
-            let cy = Int(spot.normalizedY * CGFloat(height))
-            let r = max(4, Int(spot.radius * CGFloat(min(width, height))))
-            let outerR = Int(Double(r) * 1.5)
+            let cx = extent.origin.x + spot.normalizedX * extent.width
+            let cy = extent.origin.y + spot.normalizedY * extent.height
+            let pixelRadius = max(8.0, spot.radius * minDim)
             
-            // Sample surrounding ring for healthy skin median/mean color
-            var ringR: Double = 0, ringG: Double = 0, ringB: Double = 0, ringCount = 0
+            // 1. Sample clean adjacent texture patch (diagonal offset 1.0 * r in X & Y, distance ~1.414r)
+            let dx = (cx + pixelRadius * 1.5 < extent.maxX - 10) ? pixelRadius * 1.0 : -pixelRadius * 1.0
+            let dy = (cy + pixelRadius * 1.5 < extent.maxY - 10) ? pixelRadius * 1.0 : -pixelRadius * 1.0
+            let sourcePatch = currentImage.transformed(by: CGAffineTransform(translationX: -dx, y: -dy))
             
-            let minX = max(0, cx - outerR)
-            let maxX = min(width - 1, cx + outerR)
-            let minY = max(0, cy - outerR)
-            let maxY = min(height - 1, cy + outerR)
+            // 2. Feathered radial gradient mask centered on the blemish (inner 80% solid inpaint, outer 38% feathered)
+            guard let radialFilter = CIFilter(name: "CIRadialGradient") else { continue }
+            radialFilter.setValue(CIVector(x: cx, y: cy), forKey: "inputCenter")
+            radialFilter.setValue(Double(pixelRadius) * 0.80, forKey: "inputRadius0")
+            radialFilter.setValue(Double(pixelRadius) * 1.18, forKey: "inputRadius1")
+            radialFilter.setValue(CIColor(red: 1, green: 1, blue: 1, alpha: 1), forKey: "inputColor0")
+            radialFilter.setValue(CIColor(red: 0, green: 0, blue: 0, alpha: 0), forKey: "inputColor1")
             
-            for y in minY...maxY {
-                let row = y * bytesPerRow
-                for x in minX...maxX {
-                    let dx = x - cx
-                    let dy = y - cy
-                    let dist = sqrt(Double(dx * dx + dy * dy))
-                    if dist >= Double(r) && dist <= Double(outerR) {
-                        let o = row + x * 4
-                        ringR += Double(pixelData[o])
-                        ringG += Double(pixelData[o + 1])
-                        ringB += Double(pixelData[o + 2])
-                        ringCount += 1
-                    }
-                }
-            }
+            guard let radialMask = radialFilter.outputImage?.cropped(to: extent) else { continue }
             
-            guard ringCount > 0 else { continue }
-            let targetR = Float(ringR / Double(ringCount))
-            let targetG = Float(ringG / Double(ringCount))
-            let targetB = Float(ringB / Double(ringCount))
-            
-            // Blend patch with quadratic smooth falloff
-            for y in minY...maxY {
-                let row = y * bytesPerRow
-                for x in minX...maxX {
-                    let dx = x - cx
-                    let dy = y - cy
-                    let dist = sqrt(Double(dx * dx + dy * dy))
-                    if dist < Double(r) {
-                        let o = row + x * 4
-                        let weight = Float(cos((dist / Double(r)) * Double.pi * 0.5))
-                        let curR = Float(pixelData[o])
-                        let curG = Float(pixelData[o + 1])
-                        let curB = Float(pixelData[o + 2])
-                        
-                        pixelData[o] = UInt8(max(0, min(255, curR * (1.0 - weight) + targetR * weight)))
-                        pixelData[o + 1] = UInt8(max(0, min(255, curG * (1.0 - weight) + targetG * weight)))
-                        pixelData[o + 2] = UInt8(max(0, min(255, curB * (1.0 - weight) + targetB * weight)))
-                    }
-                }
-            }
+            // 3. GPU Masked Composite: Blend healthy adjacent skin texture into the blemish spot
+            currentImage = sourcePatch.applyingFilter("CIBlendWithMask", parameters: [
+                kCIInputBackgroundImageKey: currentImage,
+                kCIInputMaskImageKey: radialMask
+            ])
         }
         
-        guard let healedCG = ctx.makeImage() else { return image }
-        return CIImage(cgImage: healedCG)
+        return currentImage
     }
     
     // MARK: - 3. Edge-Preserving Skin Smoothing & Tone Protection

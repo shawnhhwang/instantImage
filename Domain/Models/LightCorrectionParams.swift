@@ -5,12 +5,14 @@ import CoreImage
 /// Individual spot / blemish removal patch storing normalized center coordinates (0.0...1.0) and pixel/normalized radius
 public struct SpotRemovalItem: Codable, Equatable, Hashable, Sendable {
     public var id: UUID
+    public var strokeId: UUID
     public var normalizedX: CGFloat // 0.0 to 1.0 (relative to image width)
     public var normalizedY: CGFloat // 0.0 to 1.0 (relative to image height)
     public var radius: CGFloat      // in normalized units (0.005 to 0.10)
     
-    public init(id: UUID = UUID(), normalizedX: CGFloat, normalizedY: CGFloat, radius: CGFloat = 0.02) {
+    public init(id: UUID = UUID(), strokeId: UUID = UUID(), normalizedX: CGFloat, normalizedY: CGFloat, radius: CGFloat = 0.02) {
         self.id = id
+        self.strokeId = strokeId
         self.normalizedX = normalizedX
         self.normalizedY = normalizedY
         self.radius = radius

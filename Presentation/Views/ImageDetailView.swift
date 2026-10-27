@@ -6,6 +6,8 @@ import CoreImage
 
 public struct ImageDetailView: View {
     @ObservedObject var viewModel: AppViewModel
+    @State private var spotHoverLocation: CGPoint? = nil
+    @State private var activeStrokePoints: [CGPoint] = []
     
     public init(viewModel: AppViewModel) {
         self.viewModel = viewModel
@@ -95,6 +97,12 @@ public struct ImageDetailView: View {
                         
                         // Left / Right Navigation Touchpoints
                         navigationArrowButtons
+                        
+                        // Bottom-Right Filename & Index Badge
+                        bottomRightInfoBadge(for: selectedImage, key: key)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                            .padding(.trailing, 20)
+                            .padding(.bottom, 14)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -132,44 +140,17 @@ public struct ImageDetailView: View {
     // MARK: - Top Floating Dynamic Island
     private func topFloatingIsland(for selectedImage: ImageItem, key: String) -> some View {
         HStack(spacing: 10) {
-            // Left Group: Close Button & Filename Badge
-            HStack(spacing: 8) {
-                LuminaIconButton(
-                    icon: "xmark",
-                    title: "關閉詳細檢視",
-                    shortcut: "ESC",
-                    size: 32,
-                    iconSize: 11
-                ) {
-                    withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
-                        viewModel.isDetailActive = false
-                    }
+            // Left Group: Close Button (Clean & uncrowded)
+            LuminaIconButton(
+                icon: "xmark",
+                title: "關閉詳細檢視",
+                shortcut: "ESC",
+                size: 32,
+                iconSize: 11
+            ) {
+                withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) {
+                    viewModel.isDetailActive = false
                 }
-                
-                HStack(spacing: 7) {
-                    Text(selectedImage.filename)
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(LuminaTheme.Colors.textPrimary)
-                        .lineLimit(1)
-                    
-                    Text(selectedImage.url.pathExtension.uppercased())
-                        .font(.system(size: 9, weight: .heavy, design: .monospaced))
-                        .foregroundColor(LuminaTheme.Colors.cyanAccent)
-                        .padding(.vertical, 1)
-                        .padding(.horizontal, 4.5)
-                        .background(
-                            Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.14))
-                        )
-                    
-                    if let curIdx = viewModel.selectedImageIndex {
-                        Text("\(curIdx + 1) / \(viewModel.displayedImages.count)")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(LuminaTheme.Colors.textTertiary)
-                    }
-                }
-                .padding(.vertical, 5)
-                .padding(.horizontal, 11)
-                .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
             }
             
             Spacer()
@@ -424,28 +405,189 @@ public struct ImageDetailView: View {
         }
     }
     
-    // MARK: - Interactive Spot Removal Mode Canvas Overlay
+    // MARK: - Image Geometry Helper
+    private func calculateFittedImageRect(in viewSize: CGSize, metadata: ImageMetadata?) -> CGRect {
+        guard viewSize.width > 0 && viewSize.height > 0 else { return .zero }
+        let aspect: CGFloat
+        if let w = metadata?.width, let h = metadata?.height, w > 0, h > 0 {
+            aspect = CGFloat(w) / CGFloat(h)
+        } else {
+            aspect = viewSize.width / max(1.0, viewSize.height)
+        }
+        
+        let viewAspect = viewSize.width / max(1.0, viewSize.height)
+        let fittedWidth: CGFloat
+        let fittedHeight: CGFloat
+        let offsetX: CGFloat
+        let offsetY: CGFloat
+        
+        if aspect > viewAspect {
+            fittedWidth = viewSize.width
+            fittedHeight = viewSize.width / aspect
+            offsetX = 0
+            offsetY = (viewSize.height - fittedHeight) / 2.0
+        } else {
+            fittedHeight = viewSize.height
+            fittedWidth = viewSize.height * aspect
+            offsetX = (viewSize.width - fittedWidth) / 2.0
+            offsetY = 0
+        }
+        
+        return CGRect(x: offsetX, y: offsetY, width: fittedWidth, height: fittedHeight)
+    }
+    
+    // MARK: - Interactive Spot Removal Mode Canvas Overlay (Fluid GPU Inpainting & Hover Guide)
     private func spotRemovalCanvasOverlay(in size: CGSize, currentSpots: [SpotRemovalItem]) -> some View {
-        ZStack {
-            // Invisible touch receiver across canvas to register spot clicks
+        let metadata = viewModel.selectedImage.flatMap { viewModel.exifMetadata[$0.url.path] }
+        let fittedRect = calculateFittedImageRect(in: size, metadata: metadata)
+        
+        return ZStack {
+            // 1. Gesture Tracking Canvas (Single-Click or Smooth Drag-Stroke Brushing)
             Color.black.opacity(0.001)
                 .contentShape(Rectangle())
-                .onTapGesture { location in
-                    guard size.width > 0 && size.height > 0 else { return }
-                    let u = location.x / size.width
-                    let v = 1.0 - (location.y / size.height)
-                    let normRadius = max(0.008, min(0.08, viewModel.spotBrushRadius / min(size.width, size.height)))
-                    viewModel.addSpotRemoval(normalizedPoint: CGPoint(x: u, y: v), normalizedRadius: normRadius)
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                        .onChanged { value in
+                            spotHoverLocation = value.location
+                            guard fittedRect.contains(value.location) else { return }
+                            
+                            // Collect real-time stroke points for fluid 120 FPS preview
+                            if let last = activeStrokePoints.last {
+                                if hypot(value.location.x - last.x, value.location.y - last.y) >= 3.0 {
+                                    activeStrokePoints.append(value.location)
+                                }
+                            } else {
+                                activeStrokePoints.append(value.location)
+                            }
+                        }
+                        .onEnded { value in
+                            var finalPoints = activeStrokePoints
+                            if finalPoints.isEmpty && fittedRect.contains(value.location) {
+                                finalPoints = [value.location]
+                            }
+                            if !finalPoints.isEmpty {
+                                viewModel.addSpotRemovalStroke(points: finalPoints, radius: viewModel.spotBrushRadius, fittedRect: fittedRect)
+                            }
+                            activeStrokePoints = []
+                        }
+                )
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        spotHoverLocation = location
+                    case .ended:
+                        spotHoverLocation = nil
+                    }
                 }
             
-            // Draw indicators around all registered spot removals
-            ForEach(currentSpots, id: \.id) { spot in
-                let spotDiameter = spot.radius * min(size.width, size.height) * 2
-                Circle()
-                    .stroke(LuminaTheme.Colors.mintEmerald, lineWidth: 1.5)
-                    .background(Circle().fill(LuminaTheme.Colors.mintEmerald.opacity(0.18)))
-                    .frame(width: spotDiameter, height: spotDiameter)
-                    .position(x: spot.normalizedX * size.width, y: (1.0 - spot.normalizedY) * size.height)
+            // 2. Real-Time Active Drag Stroke Ribbon (Smooth Glowing 120 FPS Preview)
+            if !activeStrokePoints.isEmpty {
+                Path { path in
+                    guard let first = activeStrokePoints.first else { return }
+                    path.move(to: first)
+                    for pt in activeStrokePoints.dropFirst() {
+                        path.addLine(to: pt)
+                    }
+                }
+                .stroke(
+                    LuminaTheme.Colors.mintEmerald.opacity(0.45),
+                    style: StrokeStyle(lineWidth: viewModel.spotBrushRadius, lineCap: .round, lineJoin: .round)
+                )
+                .allowsHitTesting(false)
+            }
+            
+            // 3. Existing Registered Spot Markers (Grouped by Stroke)
+            let groupedStrokes = Dictionary(grouping: currentSpots, by: \.strokeId)
+            ForEach(Array(groupedStrokes.keys), id: \.self) { strokeId in
+                if let spots = groupedStrokes[strokeId], !spots.isEmpty {
+                    let firstSpot = spots[0]
+                    let screenX = fittedRect.origin.x + firstSpot.normalizedX * fittedRect.width
+                    let screenY = fittedRect.origin.y + (1.0 - firstSpot.normalizedY) * fittedRect.height
+                    let spotDiameter = max(14, firstSpot.radius * min(fittedRect.width, fittedRect.height) * 2)
+                    
+                    let isHovered: Bool = {
+                        guard let cur = spotHoverLocation else { return false }
+                        return hypot(cur.x - screenX, cur.y - screenY) <= max(18.0, spotDiameter * 0.7)
+                    }()
+                    
+                    ZStack {
+                        // Subtle trace ribbon for multi-point strokes
+                        if spots.count > 1 {
+                            Path { path in
+                                let pts = spots.map { s in
+                                    CGPoint(
+                                        x: fittedRect.origin.x + s.normalizedX * fittedRect.width,
+                                        y: fittedRect.origin.y + (1.0 - s.normalizedY) * fittedRect.height
+                                    )
+                                }
+                                if let start = pts.first {
+                                    path.move(to: start)
+                                    for p in pts.dropFirst() {
+                                        path.addLine(to: p)
+                                    }
+                                }
+                            }
+                            .stroke(
+                                isHovered ? LuminaTheme.Colors.neonCoral.opacity(0.65) : LuminaTheme.Colors.mintEmerald.opacity(0.25),
+                                style: StrokeStyle(lineWidth: spotDiameter, lineCap: .round, lineJoin: .round)
+                            )
+                        }
+                        
+                        // Stroke / Spot Pin Anchor
+                        Circle()
+                            .stroke(isHovered ? LuminaTheme.Colors.neonCoral : LuminaTheme.Colors.mintEmerald, lineWidth: isHovered ? 2.0 : 1.25)
+                            .background(Circle().fill(isHovered ? LuminaTheme.Colors.neonCoral.opacity(0.3) : LuminaTheme.Colors.mintEmerald.opacity(0.15)))
+                            .frame(width: max(16, spotDiameter), height: max(16, spotDiameter))
+                            .position(x: screenX, y: screenY)
+                        
+                        if isHovered {
+                            Image(systemName: "xmark")
+                                .font(.system(size: max(9, spotDiameter * 0.4), weight: .heavy))
+                                .foregroundColor(.white)
+                                .shadow(radius: 2)
+                                .position(x: screenX, y: screenY)
+                        }
+                    }
+                    .onTapGesture {
+                        viewModel.removeSpotRemoval(id: firstSpot.id)
+                    }
+                    .help("點擊刪除此處污漬修復 (共 \(spots.count) 個採樣點)")
+                }
+            }
+            
+            // 3. Real-Time Interactive Cursor Brush Ring & Size Tooltip HUD
+            if let curPos = spotHoverLocation, fittedRect.contains(curPos) {
+                let brushDiameter = viewModel.spotBrushRadius
+                
+                ZStack {
+                    // Outer Ring with soft dotted feather indicator
+                    Circle()
+                        .stroke(LuminaTheme.Colors.mintEmerald, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                        .frame(width: brushDiameter, height: brushDiameter)
+                    
+                    // Inner Core
+                    Circle()
+                        .stroke(LuminaTheme.Colors.mintEmerald.opacity(0.5), lineWidth: 0.75)
+                        .frame(width: brushDiameter * 0.5, height: brushDiameter * 0.5)
+                    
+                    // Center Reticle Dot
+                    Circle()
+                        .fill(LuminaTheme.Colors.mintEmerald)
+                        .frame(width: 3.5, height: 3.5)
+                    
+                    // Floating Size Indicator
+                    HStack(spacing: 3) {
+                        Text("\(Int(viewModel.spotBrushRadius)) px")
+                            .font(.system(size: 9.5, weight: .bold, design: .monospaced))
+                            .foregroundColor(.white)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(Color.black.opacity(0.78)))
+                    .offset(x: brushDiameter * 0.6 + 18, y: -12)
+                }
+                .position(curPos)
+                .allowsHitTesting(false)
             }
         }
     }
@@ -467,6 +609,39 @@ public struct ImageDetailView: View {
         }
         .padding(.horizontal, 20)
         .frame(maxWidth: .infinity)
+    }
+    
+    // MARK: - Bottom-Right Filename & Photo Index HUD
+    private func bottomRightInfoBadge(for selectedImage: ImageItem, key: String) -> some View {
+        HStack(spacing: 7) {
+            Image(systemName: "photo")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundColor(LuminaTheme.Colors.cyanAccent)
+            
+            Text(selectedImage.filename)
+                .font(.system(size: 11.5, weight: .bold))
+                .foregroundColor(LuminaTheme.Colors.textPrimary)
+                .lineLimit(1)
+            
+            Text(selectedImage.url.pathExtension.uppercased())
+                .font(.system(size: 9, weight: .heavy, design: .monospaced))
+                .foregroundColor(LuminaTheme.Colors.cyanAccent)
+                .padding(.vertical, 1.5)
+                .padding(.horizontal, 5)
+                .background(
+                    Capsule().fill(LuminaTheme.Colors.cyanAccent.opacity(0.14))
+                )
+            
+            if let curIdx = viewModel.selectedImageIndex {
+                Text("\(curIdx + 1) / \(viewModel.displayedImages.count)")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(LuminaTheme.Colors.textTertiary)
+            }
+        }
+        .padding(.vertical, 5)
+        .padding(.horizontal, 11)
+        .luminaGlass(cornerRadius: LuminaTheme.Radius.pill)
+        .shadow(color: Color.black.opacity(0.12), radius: 6, x: 0, y: 3)
     }
 }
 
@@ -1097,7 +1272,8 @@ public struct DetailsSidebarView: View {
                 Spacer()
                 
                 if !currentParams.spotRemovals.isEmpty {
-                    Text("\(currentParams.spotRemovals.count) 個斑點")
+                    let strokeCount = Set(currentParams.spotRemovals.map { $0.strokeId }).count
+                    Text("\(strokeCount) 個修復點/劃")
                         .font(.system(size: 9, weight: .semibold, design: .monospaced))
                         .foregroundColor(LuminaTheme.Colors.textMuted)
                 }
@@ -1111,8 +1287,26 @@ public struct DetailsSidebarView: View {
                         .font(.system(size: 9, weight: .medium))
                         .foregroundColor(LuminaTheme.Colors.textSecondary)
                     
-                    Slider(value: $viewModel.spotBrushRadius, in: 10.0...60.0)
+                    Button("-") {
+                        viewModel.decreaseSpotBrushRadius()
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(Color.black.opacity(0.06)))
+                    .buttonStyle(PlainButtonStyle())
+                    .help("縮小筆刷 ([)")
+                    
+                    Slider(value: $viewModel.spotBrushRadius, in: 8.0...100.0)
                         .accentColor(LuminaTheme.Colors.mintEmerald)
+                    
+                    Button("+") {
+                        viewModel.increaseSpotBrushRadius()
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .frame(width: 18, height: 18)
+                    .background(Circle().fill(Color.black.opacity(0.06)))
+                    .buttonStyle(PlainButtonStyle())
+                    .help("放大筆刷 (])")
                     
                     Text("\(Int(viewModel.spotBrushRadius)) px")
                         .font(.system(size: 9, weight: .bold, design: .monospaced))

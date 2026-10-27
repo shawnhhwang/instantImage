@@ -815,7 +815,93 @@ public final class AppViewModel: ObservableObject {
         let spot = SpotRemovalItem(normalizedX: normalizedPoint.x, normalizedY: normalizedPoint.y, radius: normalizedRadius)
         current.spotRemovals.append(spot)
         lightCorrections[key] = current
-        showToast("已修復污漬斑點 (共 \(current.spotRemovals.count) 處)")
+        let strokeCount = Set(current.spotRemovals.map { $0.strokeId }).count
+        showToast("已修復污漬斑點 (共 \(strokeCount) 處)")
+    }
+    
+    public func addSpotRemovalStroke(points: [CGPoint], radius: CGFloat, fittedRect: CGRect) {
+        guard let image = selectedImage else { return }
+        guard !points.isEmpty, fittedRect.width > 0, fittedRect.height > 0 else { return }
+        
+        let minDim = min(fittedRect.width, fittedRect.height)
+        let normRadius = max(0.006, min(0.12, (radius * 0.5) / minDim))
+        let strokeId = UUID()
+        
+        // 1. Resample along polyline
+        let spacing = max(8.0, radius * 0.45)
+        var candidates: [CGPoint] = []
+        if let first = points.first {
+            candidates.append(first)
+            var lastPoint = first
+            var accumulatedDist: CGFloat = 0.0
+            for i in 1..<points.count {
+                let pt = points[i]
+                accumulatedDist += hypot(pt.x - lastPoint.x, pt.y - lastPoint.y)
+                lastPoint = pt
+                if accumulatedDist >= spacing {
+                    candidates.append(pt)
+                    accumulatedDist = 0.0
+                }
+            }
+        }
+        
+        // 2. Spatial deduplication (avoids clusters when scrubbing over an area)
+        var sampled: [CGPoint] = []
+        for pt in candidates {
+            if sampled.contains(where: { hypot($0.x - pt.x, $0.y - pt.y) < spacing }) {
+                continue
+            }
+            sampled.append(pt)
+            if sampled.count >= 35 { break }
+        }
+        
+        if sampled.isEmpty, let first = points.first {
+            sampled = [first]
+        }
+        
+        var newSpots: [SpotRemovalItem] = []
+        for pt in sampled {
+            let clampedX = max(fittedRect.minX, min(fittedRect.maxX, pt.x))
+            let clampedY = max(fittedRect.minY, min(fittedRect.maxY, pt.y))
+            let u = (clampedX - fittedRect.origin.x) / fittedRect.width
+            let v = 1.0 - ((clampedY - fittedRect.origin.y) / fittedRect.height)
+            newSpots.append(SpotRemovalItem(
+                strokeId: strokeId,
+                normalizedX: u,
+                normalizedY: v,
+                radius: normRadius
+            ))
+        }
+        
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        current.spotRemovals.append(contentsOf: newSpots)
+        lightCorrections[key] = current
+        
+        let strokeCount = Set(current.spotRemovals.map { $0.strokeId }).count
+        showToast("已修復污漬筆刷區域 (共 \(strokeCount) 處)")
+    }
+    
+    public func removeSpotRemoval(id: UUID) {
+        guard let image = selectedImage else { return }
+        let key = image.url.path
+        var current = lightCorrections[key] ?? .neutral
+        if let target = current.spotRemovals.first(where: { $0.id == id }) {
+            current.spotRemovals.removeAll { $0.strokeId == target.strokeId }
+            lightCorrections[key] = current
+            let strokeCount = Set(current.spotRemovals.map { $0.strokeId }).count
+            showToast("已移除該處污漬修復 (剩餘 \(strokeCount) 處)")
+        }
+    }
+    
+    public func increaseSpotBrushRadius(by amount: CGFloat = 4.0) {
+        spotBrushRadius = min(120.0, spotBrushRadius + amount)
+        showToast("筆刷大小: \(Int(spotBrushRadius)) px")
+    }
+    
+    public func decreaseSpotBrushRadius(by amount: CGFloat = 4.0) {
+        spotBrushRadius = max(6.0, spotBrushRadius - amount)
+        showToast("筆刷大小: \(Int(spotBrushRadius)) px")
     }
     
     public func undoLastSpotRemoval() {
@@ -823,9 +909,14 @@ public final class AppViewModel: ObservableObject {
         let key = image.url.path
         var current = lightCorrections[key] ?? .neutral
         guard !current.spotRemovals.isEmpty else { return }
-        current.spotRemovals.removeLast()
+        if let lastStrokeId = current.spotRemovals.last?.strokeId {
+            current.spotRemovals.removeAll { $0.strokeId == lastStrokeId }
+        } else {
+            current.spotRemovals.removeLast()
+        }
         lightCorrections[key] = current
-        showToast("已復原上一個污漬修復 (剩餘 \(current.spotRemovals.count) 處)")
+        let strokeCount = Set(current.spotRemovals.map { $0.strokeId }).count
+        showToast("已復原上一個污漬修復 (剩餘 \(strokeCount) 處)")
     }
     
     public func clearAllSpotRemovals() {
@@ -1260,8 +1351,24 @@ public final class AppViewModel: ObservableObject {
             if isDetailActive {
                 isFilmstripVisible.toggle()
             }
+        case 33: // [ Key (Decrease Spot Brush Size)
+            if isDetailActive && isSpotRemovalModeActive {
+                decreaseSpotBrushRadius()
+            }
+        case 30: // ] Key (Increase Spot Brush Size)
+            if isDetailActive && isSpotRemovalModeActive {
+                increaseSpotBrushRadius()
+            }
+        case 6: // Z Key (Cmd+Z: Undo Spot Removal)
+            if event.modifierFlags.contains(.command) && isDetailActive && isSpotRemovalModeActive {
+                undoLastSpotRemoval()
+            }
         case KeyCode.delete, KeyCode.forwardDelete:
-            deleteSelectedImage()
+            if isDetailActive && isSpotRemovalModeActive {
+                undoLastSpotRemoval()
+            } else {
+                deleteSelectedImage()
+            }
         case KeyCode.hKey:
             convertSelectedImagesToHEIC()
         case 45: // N Key (Apply Short Hash to Selected Filenames)
@@ -2642,23 +2749,17 @@ public final class AppViewModel: ObservableObject {
                 let currentBaseName = sourceURL.deletingPathExtension().lastPathComponent
                 let ext = sourceURL.pathExtension
                 
-                // 1. Calculate content short hash
-                let shortHash = Self.computeFileShortHash(for: sourceURL, length: 8)
+                // 1. Calculate content short hash (8 hex characters directly replacing original name)
+                let shortHash = Self.computeFileShortHash(for: sourceURL, length: 8).lowercased()
                 
-                // 2. Strip any preexisting 8-char hex hash suffix (e.g. "_a1b2c3d4") to prevent infinite chaining like "_hash_hash"
-                var pureBaseName = currentBaseName
-                if let hashRange = currentBaseName.range(of: "_[0-9a-fA-F]{8}$", options: .regularExpression) {
-                    let existingHash = String(currentBaseName[hashRange].dropFirst()) // drop leading '_'
-                    if existingHash.lowercased() == shortHash.lowercased() {
-                        // Already accurately hashed with matching short hash
-                        skippedCount += 1
-                        continue
-                    }
-                    pureBaseName = String(currentBaseName[..<hashRange.lowerBound])
+                // 2. If the file is already named with this exact short hash, skip
+                if currentBaseName.lowercased() == shortHash {
+                    skippedCount += 1
+                    continue
                 }
                 
-                // 3. Resolve destination URL with collision avoidance
-                let newBaseName = "\(pureBaseName)_\(shortHash)"
+                // 3. Directly replace filename with short hash (preserving extension)
+                let newBaseName = shortHash
                 var destURL = ext.isEmpty ? targetDir.appendingPathComponent(newBaseName) : targetDir.appendingPathComponent("\(newBaseName).\(ext)")
                 
                 if destURL.path == sourceURL.path {
@@ -2719,12 +2820,12 @@ public final class AppViewModel: ObservableObject {
                         if let newIndex = self.displayedImages.firstIndex(where: { $0.url == newURL }) {
                             self.selectedImageIndex = newIndex
                         }
-                        self.showToast("⚡️ 檔名已成功附加短 Hash: \(newURL.lastPathComponent)")
+                        self.showToast("⚡️ 檔名已成功以短 Hash 取代: \(newURL.lastPathComponent)")
                     } else {
-                        self.showToast("⚡️ 已完成 \(renamedCount) 張相片短 Hash 命名" + (skippedCount > 0 ? " (跳過 \(skippedCount) 張已具備最新短 Hash)" : ""))
+                        self.showToast("⚡️ 已完成 \(renamedCount) 張相片短 Hash 取代命名" + (skippedCount > 0 ? " (跳過 \(skippedCount) 張已是短 Hash)" : ""))
                     }
                 } else if skippedCount > 0 {
-                    self.showToast("選取的相片已具備對應短 Hash，無需重複命名")
+                    self.showToast("選取的相片已是短 Hash 檔名，無需重複命名")
                 } else if failedCount > 0 {
                     self.showToast("短 Hash 命名失敗，請檢查檔案寫入權限")
                 }

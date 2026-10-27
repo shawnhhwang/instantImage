@@ -42,7 +42,7 @@ public struct KeyboardCheatSheetView: View {
                 ShortcutItem(keys: ["0"], description: "清除星級評等 (未評級)"),
                 ShortcutItem(keys: ["T"], description: "切換標記 / 取消標記 (Flagged)"),
                 ShortcutItem(keys: ["H"], description: "一鍵轉存為 HEIC 並取代刪除原檔"),
-                ShortcutItem(keys: ["N"], description: "檔名附加 8 碼短 Hash 防重複 (單張或批次)"),
+                ShortcutItem(keys: ["N"], description: "檔名以 8 碼內容短 Hash 直接取代防重 (單張或批次)"),
                 ShortcutItem(keys: ["M"], description: "搬移至目標資料夾 (Culling Move)"),
                 ShortcutItem(keys: ["DEL / Delete", "⌘ Delete"], description: "安全移至資源回收桶 (Trash)")
             ]
@@ -54,6 +54,7 @@ public struct KeyboardCheatSheetView: View {
                 ShortcutItem(keys: ["E"], description: "一鍵自動最佳化光線 (Auto Tone)"),
                 ShortcutItem(keys: ["W"], description: "自動白平衡校正 (Auto WB)"),
                 ShortcutItem(keys: ["B"], description: "切換點擊去除污漬模式 (Spot Removal)"),
+                ShortcutItem(keys: ["[", "]"], description: "縮小 / 放大去除污漬筆刷直徑"),
                 ShortcutItem(keys: ["\\"], description: "切換左右前後對比分割簾 (Before/After)"),
                 ShortcutItem(keys: ["J"], description: "開啟過曝(紅)與死黑(藍)剪裁警告"),
                 ShortcutItem(keys: ["⌘", "C"], description: "複製當前照片之調光參數"),
